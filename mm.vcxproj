@@ -25,6 +25,7 @@
     <ClCompile Include="src\Main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Matrix.h" />
     <ClInclude Include="src\draw.h" />
     <ClInclude Include="src\form.h" />
     <ClInclude Include="src\Frame.h" />
