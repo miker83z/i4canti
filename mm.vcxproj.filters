@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="src\draw.cpp" />
+    <ClCompile Include="src\form.cpp" />
+    <ClCompile Include="src\Frame.cpp" />
+    <ClCompile Include="src\Main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\draw.h" />
+    <ClInclude Include="src\form.h" />
+    <ClInclude Include="src\Frame.h" />
+  </ItemGroup>
+</Project>
