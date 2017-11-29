@@ -25,10 +25,10 @@
     <ClCompile Include="src\Main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Matrix.h" />
     <ClInclude Include="src\draw.h" />
     <ClInclude Include="src\form.h" />
     <ClInclude Include="src\Frame.h" />
+    <ClInclude Include="src\Matrix.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{841EFDA1-9D0D-4DE9-BC33-FC0B00175974}</ProjectGuid>
