@@ -6,7 +6,10 @@
     <ClCompile Include="src\Frame.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Agent.cpp" />
+<<<<<<< HEAD
     <ClCompile Include="src\Matrix.cpp" />
+=======
+>>>>>>> ff5c2712dba9798375967436e6dcf6a6d793d468
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\draw.h" />
