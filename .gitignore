@@ -303,3 +303,4 @@ __pycache__/
 
 # OpenCover UI analysis results
 OpenCover/
+.vs/i4canti/v15/Browse.VC.db
