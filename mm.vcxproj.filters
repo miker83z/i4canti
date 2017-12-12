@@ -5,11 +5,14 @@
     <ClCompile Include="src\form.cpp" />
     <ClCompile Include="src\Frame.cpp" />
     <ClCompile Include="src\Main.cpp" />
+    <ClCompile Include="src\Agent.cpp" />
+    <ClCompile Include="src\Matrix.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\draw.h" />
     <ClInclude Include="src\form.h" />
     <ClInclude Include="src\Frame.h" />
     <ClInclude Include="src\Matrix.h" />
+    <ClInclude Include="src\Agent.h" />
   </ItemGroup>
 </Project>
