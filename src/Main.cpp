@@ -1,8 +1,18 @@
-#include <FL/Fl.H>
 #include "form.h"
-#include "frame.h"
 #include "Agent.h"
+<<<<<<< HEAD
 #include "Matrix.h"
+=======
+#include <FL/Fl.H>
+#include <FL/Fl_Double_Window.H>
+#include <FL/Fl_Box.H>
+#include <FL/fl_draw.H>
+#include <math.h>
+#include <stdio.h>
+#include <time.h>
+#include <DrawAgents.h>
+
+>>>>>>> 4e82b116715f55f7b4b7ac4a4572c713a051a00f
 
 const int N = 100;
 const int canti = 2;
@@ -25,5 +35,9 @@ int main(int argc, char **argv) {
 	//Fl::run();
 	system("pause");
 	return 0;
+	Fl_Double_Window win(400, 400);
+	MyTimer tim(10, 10, win.w() - 20, win.h() - 20);
+	win.show();
+	return(Fl::run());
 }
 //-------------------------------------------------------------------------------------------------
