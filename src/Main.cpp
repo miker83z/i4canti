@@ -1,3 +1,5 @@
+#include "form.h"
+#include "Agent.h"
 #include <FL/Fl.H>
 #include <FL/Fl_Double_Window.H>
 #include <FL/Fl_Box.H>
@@ -5,10 +7,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <time.h>
-#include "form.h"
-#include "Agent.h"
-#include "Matrix.h"
-#include "DrawAgents.h"
+#include <DrawAgents.h>
 
 const int N = 100;
 const int canti = 2;
@@ -35,5 +34,9 @@ int main(int argc, char **argv) {
 	return(Fl::run());
 	system("pause");
 	return 0;
+	Fl_Double_Window win(400, 400);
+	MyTimer tim(10, 10, win.w() - 20, win.h() - 20);
+	win.show();
+	return(Fl::run());
 }
 //-------------------------------------------------------------------------------------------------
