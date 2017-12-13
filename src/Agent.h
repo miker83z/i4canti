@@ -4,14 +4,14 @@
 
 class Agent{
 public:
-	Agent(Matrix a);
+	Agent(Matrix* a);
 	~Agent();
 	void move();
 
 private:
 	int position[2];
-	double ideas[4];
-	Matrix mat;
+	double* ideas;
+	Matrix* mat;
 	void set_new_position(int i);
 };
 

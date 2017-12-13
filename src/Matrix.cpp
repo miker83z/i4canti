@@ -2,13 +2,14 @@
 
 Matrix::Matrix(int n, int n_canti) {
 	this->N = n;
+	this->num_canti = n_canti;
 	mat = new int*[n];
 	for (int i = 0; i < n; i++){
 		mat[i] = new int[n];
 	}
 	canti_pos = new int*[n_canti];
 	for (int i = 0; i < n_canti; i++) {
-		mat[i] = new int[2];
+		canti_pos[i] = new int[2];
 	}
 	set_canti(n_canti);
 }
@@ -18,7 +19,7 @@ int Matrix::get_dim() {
 }
 
 int Matrix::get_canti() {
-	return (N*sizeof(canti_pos[0][0])) / sizeof(canti_pos[0][0]);
+	return num_canti;
 }
 
 int* Matrix::get_canto_pos(int canto) {
@@ -58,6 +59,12 @@ void Matrix::set_canti(int canti) {
 	}
 }
 
-bool Matrix::is_not_occupied(int *x) {
-	if(  )
+bool Matrix::is_not_occupied(int x, int y) {
+	if (mat[x][y] == 0) return true;
+	else return false;
+}
+
+void Matrix::set_in_position(int x, int y, int o_x, int o_y) {
+	mat[o_x][o_y] = 1; 
+	mat[x][y] = 1;
 }
