@@ -8,11 +8,16 @@
 #include "DrawAgents.h"
 #include "Agent.h"
 #include "Matrix.h"
+#include <vector>
 
 const int N = 100;
 const int canti = 2;
+const int NA = 10;
 
 int main(int argc, char **argv) {
+	vector<Agents> agents;
+	bool pos_verified[NA];
+	bool id_verified[NA];
 	//Matrix* mat = new Matrix(N, canti);
 	//Agent a(mat);
 	//a.move();
