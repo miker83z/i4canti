@@ -19,11 +19,15 @@ void idle_cb(void*)
 }
 //-------------------------------------------------------------------------------------------------
 int main(int argc, char **argv) {
-	Agent* a = new Agent();
-	a.move();
+	Matrix* mat = new Matrix();
+	Agent* a = new Agent(mat);
+	a->move();
+	a->move();
+	a->move();
 	//CreateMyWindow();
 	//Fl::add_idle(idle_cb, 0);
 	//Fl::run();
+	system("pause");
 	return 0;
 	Fl_Double_Window win(400, 400);
 	MyTimer tim(10, 10, win.w() - 20, win.h() - 20);

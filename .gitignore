@@ -304,3 +304,7 @@ __pycache__/
 # OpenCover UI analysis results
 OpenCover/
 .vs/i4canti/v15/Browse.VC.db
+mm.vcxproj.filters
+mm.vcxproj.filters
+.vs/i4canti/v15/Browse.VC.db
+.vs/i4canti/v15/.suo
