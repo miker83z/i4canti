@@ -7,6 +7,8 @@ public:
 	Agent(Matrix* a);
 	~Agent();
 	void move();
+	int* get_position();
+	double* get_ideas();
 
 private:
 	int position[2];
