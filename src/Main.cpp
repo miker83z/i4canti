@@ -8,6 +8,10 @@
 #include <stdio.h>
 #include <time.h>
 #include <DrawAgents.h>
+<<<<<<< HEAD
+=======
+
+>>>>>>> 4e82b116715f55f7b4b7ac4a4572c713a051a00f
 
 const int N = 100;
 const int canti = 2;
