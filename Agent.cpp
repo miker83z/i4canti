@@ -5,23 +5,32 @@
 #include <math.h>
 #include "Agent.h"
 
-using namespace std;
 int num_canti;
+vector<int *> canti;
 double get_distance(int* a, int* b);
 
-Agent::Agent(Matrix* a) {
-	mat = a;
-	num_canti = a->get_canti();
+Agent::Agent(Environment* e, int x, int y, int s) {
+	name = "Agent " + to_string(s);
+	id = s;
+	env = e;
+	num_canti = e->get_canti();
+	for (int i = 0; i < num_canti; i++) {
+		canti.push_back(new int[2]);
+		canti[i][0] = env->get_canto_pos(i)[0];
+		canti[i][1] = env->get_canto_pos(i)[1];
+	}
 
-	srand(time(0));
-	position[0] = rand()%100;
-	position[1] = rand()%100;
-	cout << "Position " << position[0] << "," << position[1] << "\n";
+	position[0] = x;
+	position[1] = y;
+	env->init_position(id, position[0], position[1]);
+	cout << name << " initial position: " << position[0] << "," << position[1] << "\n";
 
 	ideas = new double[num_canti];
-	for (int i = 0; i < num_canti; i++){
+	for (int i = 0; i < num_canti; i++)
 		ideas[i] = 1 / (double) num_canti;
-	}
+	direction = new double[num_canti];
+	for (int i = 0; i < num_canti; i++)
+		direction[i] = ideas[i];
 }
 
 Agent::~Agent() {
@@ -33,24 +42,19 @@ void Agent::move() {
 	mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
 	uniform_real_distribution<> dis(0.0, 1.0);
 	double decision = dis(gen);
-	cout << decision << '\n';
-
-	int i;
-	double floor = 0.0;
-	for (i = 0; i < num_canti - 1; i++){
-		if ( decision >= floor && decision <= (floor + ideas[i]) ){
-			cout << i;
-			break;
-		}
-		floor += ideas[i];
+	cout << name << ", decision: " << decision << '\n';
+	
+	int i = 0;
+	for ( double floor = 0.0; i < num_canti - 1; i++){
+		if ( decision >= floor && decision <= (floor + direction[i]) ) break;
+		floor += direction[i];
 	}
 	set_new_position(i);
-	cout << "Position " << position[0] << "," << position[1] << "\n";
+
+	cout << name << " new position: " << position[0] << "," << position[1] << "\n";
 }
 
 void Agent::set_new_position( int canto ) {
-	cout << " Canto" << canto << "\n";
-	int* canto_pos = mat->get_canto_pos(canto);
 	int new_position[2];
 	new_position[0] = position[0];
 	new_position[1] = position[1];
@@ -62,17 +66,44 @@ void Agent::set_new_position( int canto ) {
 			if ( i == 0 && j == 0 ) j++;
 			tmp_positions[0] = position[0] + i;
 			tmp_positions[1] = position[1] + j;
-			double tmp = get_distance(tmp_positions, canto_pos);
-			if (tmp < min && mat->is_not_occupied(tmp_positions[0], tmp_positions[1]) ) {
+			double tmp = get_distance(tmp_positions, canti[canto]);
+			if (tmp < min && env->is_allowed_in_position(tmp_positions[0], tmp_positions[1]) ) {
 				min = tmp;
 				new_position[0] = tmp_positions[0];
 				new_position[1] = tmp_positions[1];
 			}
 		}
 	}
-	mat->set_in_position(new_position[0], new_position[0], position[0], position[0]);
+	env->set_in_position(new_position[0], new_position[0], position[0], position[0]);
 	position[0] = new_position[0];
 	position[1] = new_position[1];
+}
+
+void Agent::interact() {
+	int tmp_positions[2];
+	for (int i = -1; i < 2; i++) {
+		for (int j = -1; j < 2; j++) {
+			if (i == 0 && j == 0) j++;
+			tmp_positions[0] = position[0] + i;
+			tmp_positions[1] = position[1] + j;
+			Agent* influencer = env->get_agent_in_position(tmp_positions[0], tmp_positions[1]);
+			if (influencer != NULL) {
+
+			}
+		}
+	}
+}
+
+int* Agent::get_position() {
+	return position;
+}
+
+double* Agent::get_ideas() {
+	return ideas;
+}
+
+int Agent::get_id() {
+	return id;
 }
 
 double get_distance( int* a, int* b) {
