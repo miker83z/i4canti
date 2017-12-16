@@ -1,15 +1,24 @@
 #ifndef DRAWAGENTS_HPP
 #define DRAWAGENTS_HPP
 
-static void Agent_RD(void *userdata);
+#include <iostream>
+#include <vector>
+#include <FL/Fl.H>
+#include <FL/Fl_Widget.H>
+#include <FL/Fl_Double_Window.H>
+#include <FL/Fl_Box.H>
+#include <FL/fl_draw.H>
 
-class DrawAgents : public Fl_Box {
+static void winUpdate(void *data);
 
-public:
-	DrawAgents(int X, int Y, int W, int H, const char*L);
+class DrawAgents : public Fl_Widget {
 
 private:
+	Fl_Color color;
 	void draw();
+
+public:
+	DrawAgents(int X, int Y, int W, int H, Fl_Color c);
 
 };
 
