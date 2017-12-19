@@ -13,9 +13,14 @@
 const int N = 100;
 const int canti = 2;
 const int NA = 10;
+static unsigned i = 0;
+
+using namespace std;
+
+vector<DrawAgents*> allAgents;
 
 int main(int argc, char **argv) {
-	vector<Agents> agents;
+
 	bool pos_verified[NA];
 	bool id_verified[NA];
 	//Matrix* mat = new Matrix(N, canti);
@@ -23,9 +28,19 @@ int main(int argc, char **argv) {
 	//a.move();
 	//a.move();
 	//a.move();
-	Fl_Double_Window win(400, 400);
-	DrawAgents tim(10, 10, win.w() - 20, win.h() - 20, 0);
-	win.show();
+	Fl_Double_Window *window = new Fl_Double_Window(400, 400, "FLTK Test");
+
+	for (i = 0; i < 10; i++) {
+
+		allAgents.push_back(new DrawAgents(10*i, 10*i, 50, 50, 0));
+
+	}
+
+	window->end();
+	Fl::visual(FL_DOUBLE|FL_INDEX);
+	window->show();
+
 	return(Fl::run());
+
 }
 //-------------------------------------------------------------------------------------------------
