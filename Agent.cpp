@@ -86,11 +86,46 @@ void Agent::interact() {
 			if (i == 0 && j == 0) j++;
 			tmp_positions[0] = position[0] + i;
 			tmp_positions[1] = position[1] + j;
-			Agent* influencer = env->get_agent_in_position(tmp_positions[0], tmp_positions[1]);
-			if (influencer != NULL) {
-
-			}
+			Agent* other = env->get_agent_in_position(tmp_positions[0], tmp_positions[1]);
+			if (other != NULL && env->check_interaction(this, other) )
+				influence_game(other);
 		}
+	}
+}
+
+void Agent::influence_game(Agent *other) {
+	Agent *influencer = this, *influenced = other;
+
+	random_device rd;  //Will be used to obtain a seed for the random number engine
+	mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+	uniform_real_distribution<> dis(0.0, 1.0);
+	double coin = dis(gen);
+	
+	if (coin <= .5) {
+		influencer = other;
+		influenced = this;
+	}
+
+	int influencer_idea = influencer->get_prominent_idea();
+	influenced->get_influenced(influencer_idea, .2);
+}
+
+void Agent::get_influenced(int influenced_idea, double weight) {
+	double value = ideas[influenced_idea] * weight; //weight from 0 to 1
+	if (ideas[influenced_idea] + value > 1) {
+		ideas[influenced_idea] = 1;
+		for (int i = 0; i < num_canti; i++)
+			if (i != influenced_idea)
+				ideas[i] = 0;
+	}
+	else {
+		ideas[influenced_idea] += value;
+		//value /= (num_canti - 1);
+		int count;
+		for (int i = 0; i < num_canti; i++)
+			if (i != influenced_idea) {
+				ideas[i] -= value;
+			}
 	}
 }
 
@@ -100,6 +135,14 @@ int* Agent::get_position() {
 
 double* Agent::get_ideas() {
 	return ideas;
+}
+
+int Agent::get_prominent_idea() {
+	int max = 0;
+	for (int i = 1; i < num_canti; i++)
+		if (ideas[i] > ideas[max])
+			max = i;
+	return max;
 }
 
 int Agent::get_id() {

@@ -27,6 +27,7 @@ public:
 	Agent* get_agent(int i);
 	Agent* get_agent_in_position(int x, int y);
 	bool is_allowed_in_position(int x, int y);
+	bool check_interaction(Agent* first, Agent* second);
 private: 
 	void set_canti(int canto);
 };

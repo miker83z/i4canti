@@ -19,9 +19,12 @@ public:
 	Agent(Environment* e, int x, int y, int s);
 	~Agent();
 	void move();
-	void interact();
+	void interact(); 
+	void influence_game(Agent *other);
 	int* get_position();
 	double* get_ideas();
+	void get_influenced(int influenced_idea, double weight);
+	int get_prominent_idea();
 	int get_id();
 private:
 	void set_new_position(int i);

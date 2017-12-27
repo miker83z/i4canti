@@ -34,8 +34,9 @@
 			// Drawing agents
 			fl_color(WHITE_AGENT);
 			fl_pie(x2, y2, 20, 20, 0.0, 360.0);
-			fl_color(BLACK_AGENT);
-			fl_pie(x2 - 40, y2 - 40, 20, 20, 0.0, 360.0);
+
+
+
 
 
 		}

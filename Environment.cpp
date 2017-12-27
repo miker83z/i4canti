@@ -90,3 +90,8 @@ void Environment::set_in_position(int x, int y, int o_x, int o_y) {
 	mat[x][y] = mat[o_x][o_y];
 	mat[o_x][o_y] = 0;
 }
+
+bool Environment::check_interaction(Agent* first, Agent* second) {
+	if (interaction_verified[first->get_id()][second->get_id()]) return true;
+	return false;
+}
