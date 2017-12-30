@@ -13,29 +13,37 @@
 
 using namespace std;
 
-const int N = 100;
-const int canti = 2;
-const int NA = 10;
-static unsigned i = 0;
+const int N = 14;		//Matrix Dim
+const int NC = 4;		//Number of Canti (ideas)
+const int NA = 50;		//Number of Agents
 
-using namespace std;
+const int STEP = 10;
+const int END_TIME = 200;
 
+//static unsigned i = 0;
 vector<DrawAgents*> allAgents;
 
 int main(int argc, char **argv) {
-	srand(time(NULL));
-	vector<Agent*> agents;
-	Environment* env = new Environment(N, NA, canti, &agents);
-	
-	for (int i = 0; i < NA; i++) {
-		agents.push_back(new Agent(env, rand() % N, rand() % N, i+1));
-	}
-	//env->get_agent(0)->move();
-	for (int time = 0; time < 100; time++) {
-		for (int i = 0; i < 1; i++) {
-			agents[i]->move();
+	Environment* env = new Environment(N, NA, NC);
+	env->print_mat();
+
+	for (int time = 0; time < END_TIME; time++) {
+		env->init_interactions();
+		for (int i = 0; i < NA; i++) {
+			env->get_agent(i)->move();
+			env->get_agent(i)->interact();
+		}
+		if (!(time % STEP)) {
+			char c;
+			c = cin.get();
+			if (c == 'q') break;
+			cout << "__________________________________________________________________________________________________________\n";
+			env->print_mat();
 		}
 	}
+	
+	env->print_agents_ideas();
+	env->print_mat();
 	system("PAUSE");
 	return 0;
 	
