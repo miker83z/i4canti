@@ -14,6 +14,7 @@ vector<int *> canti;
 double get_distance(int* a, int* b);
 int uniform_decision_pick(double* arr, int size, int tru);
 
+
 Agent::Agent(Environment* e, int x, int y, int s) {
 	name = "Agent " + to_string(s);
 	id = s;
@@ -57,9 +58,9 @@ void Agent::set_new_position( int canto ) {
 			if ( i == 0 && j == 0 ) j++;
 			tmp_positions[0] = position[0] + i;
 			tmp_positions[1] = position[1] + j;
-			if (tmp_positions[0] >= 0 && tmp_positions[0] < n && tmp_positions[1] >= 0 && tmp_positions[1] < n) {
+			if (tmp_positions[0] >= 0 && tmp_positions[0] < n && tmp_positions[1] >= 0 && tmp_positions[1] < n && env->is_allowed_in_position(tmp_positions[0], tmp_positions[1])) {
 				double tmp = get_distance(tmp_positions, canti[canto]);
-				if (tmp < min && env->is_allowed_in_position(tmp_positions[0], tmp_positions[1])) {
+				if (tmp < min) {
 					min = tmp;
 					new_position[0] = tmp_positions[0];
 					new_position[1] = tmp_positions[1];
@@ -67,7 +68,7 @@ void Agent::set_new_position( int canto ) {
 			}
 		}
 	}
-	if(new_position[0] != position[0] && new_position[1] != position[1]){
+	if (new_position[0] != position[0] || new_position[1] != position[1]) {
 		env->set_in_position(new_position[0], new_position[1], position[0], position[1]);
 		position[0] = new_position[0];
 		position[1] = new_position[1];
@@ -100,7 +101,7 @@ void Agent::influence_game(Agent *other) {
 	}
 
 	int influencer_idea = influencer->get_prominent_idea();
-	influenced->get_influenced(influencer_idea, .005);
+	influenced->get_influenced(influencer_idea, .01);
 	env->set_interaction(influencer, influenced);
 	//cout << influencer->get_name() << " influence " << influenced->get_name() << ": " << influenced->get_ideas()[0] << " + " << influenced->get_ideas()[1] << " = " << influenced->get_ideas()[0] + influenced->get_ideas()[1] << "\n";
 }
@@ -108,10 +109,10 @@ void Agent::influence_game(Agent *other) {
 void Agent::get_influenced(int influenced_idea, double weight) {
 	double value = ideas[influenced_idea] * weight; //weight from 0 to 1
 	if (ideas[influenced_idea] + value > 1) {
-		update_idea(influenced_idea, 1);
+		update_idea(influenced_idea, .97);
 		for (int i = 0; i < num_canti; i++)
 			if (i != influenced_idea)
-				update_idea(i,0);
+				update_idea(i,.01);
 	}
 	else {
 		double old_diff = 1 - ideas[influenced_idea];
@@ -195,7 +196,7 @@ void Agent::update_idea(int idea, double value) {
 	}
 }
 
-double get_distance( int* a, int* b) {
+double get_distance(int* a, int* b) {
 	return sqrt(pow(a[0] - b[0], 2) + pow(a[1] - b[1], 2));
 }
 
@@ -206,9 +207,67 @@ int uniform_decision_pick(double* arr, int size, int tru) {
 	double decision = dis(gen);
 	int i = 0;
 	for (double floor = 0.0; i < size - 1; i++) {
-		if (decision >= floor && decision <= (floor + arr[i])){
+		if (decision >= floor && decision <= (floor + arr[i])) {
 			return i;
 		}
 		floor += arr[i];
 	}
 }
+
+/*
+struct Place {
+	int position[2];
+	double distance;
+};
+
+void quickSort(vector<Place> arr, int left, int right) {
+	int i = left, j = right;
+	Place tmp;
+	int pivot = arr[(left + right) / 2].distance;
+
+	while (i <= j) {
+		while (arr[i].distance < pivot)
+			i++;
+		while (arr[j].distance > pivot)
+			j--;
+		if (i <= j) {
+			tmp = arr[i];
+			arr[i] = arr[j];
+			arr[j] = tmp;
+			i++;
+			j--;
+		}
+	}
+
+	if (left < j)
+		quickSort(arr, left, j);
+	if (i < right)
+		quickSort(arr, i, right);
+}
+
+void Agent::set_new_position(int canto) {
+	vector<Place> near_places;
+	int count = 0;
+	for (int i = -1; i < 2; i++) {
+		for (int j = -1; j < 2; j++) {
+			if (i == 0 && j == 0) j++;
+			int tmp_positions[2];
+			tmp_positions[0] = position[0] + i;
+			tmp_positions[1] = position[1] + j;
+			if (tmp_positions[0] >= 0 && tmp_positions[0] < n && tmp_positions[1] >= 0 && tmp_positions[1] < n && env->is_allowed_in_position(tmp_positions[0], tmp_positions[1])) {
+				near_places.push_back(Place());
+				near_places[0].position[0] = tmp_positions[0];
+				near_places[0].position[1] = tmp_positions[1];
+				near_places[0].distance = get_distance(tmp_positions, canti[canto]);
+			}
+		}
+	}
+	int tmp_size = near_places.size();
+	if (tmp_size > 0) {
+		quickSort(near_places, 0, tmp_size - 1);
+		env->set_in_position(near_places[0].position[0], near_places[0].position[1], position[0], position[1]);
+		position[0] = near_places[0].position[0];
+		position[1] = near_places[0].position[1];
+	}
+}
+*/

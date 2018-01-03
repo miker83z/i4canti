@@ -3,6 +3,7 @@ struct Shape {
 	vector<Point> pts;
 	Shape(int lw, int lc, int fc)
 	: line_width(lw), line_color(lc), fill_color(fc) {}
+	~Shape() {}
 	void add(Point p) { pts.push_back(p); }
 	void move(int dx, int dy) {
 		for(int i=0; i<pts.size(); i++) {

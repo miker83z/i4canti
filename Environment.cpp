@@ -33,12 +33,9 @@ Environment::Environment(int n, int na, int nc) {
 		agents.push_back(new Agent(this, x, y, i));
 		mat[x][y] = i;
 	}
-	print_agents_position();
-	pos_verified = new int[na]();
-	idea_verified = new int[na]();
-	interaction_verified = new int*[na]();	//could be optimized
+	interaction_verified = new int*[na]();
 	for (int i = 0; i < na; i++) 
-		interaction_verified[i] = new int[na]();
+		interaction_verified[i] = new int[i+1]();
 }
 
 int Environment::get_dim() {
@@ -103,25 +100,38 @@ bool Environment::is_allowed_in_position(int x, int y) {
 }
 
 void Environment::set_in_position(int x, int y, int old_x, int old_y) {
-	mat[x][y] = mat[old_x][old_y];
+	int tmp = mat[old_x][old_y];
 	mat[old_x][old_y] = -1;
+	mat[x][y] = tmp;
 }
 
 bool Environment::check_interaction(Agent* first, Agent* second) {
-	if (interaction_verified[first->get_id()][second->get_id()]) return false;
+	int i = first->get_id();
+	int j = second->get_id();
+	if (i < j) {
+		int tmp = i;
+		i = j;
+		j = tmp;
+	}
+	if (interaction_verified[i][j]) return false;
 	return true;
 }
 
 void Environment::set_interaction(Agent* first, Agent* second) {
-	interaction_verified[first->get_id()][second->get_id()] = 1;
-	interaction_verified[second->get_id()][first->get_id()] = 1;
+	int i = first->get_id();
+	int j = second->get_id();
+	if (i < j) {
+		int tmp = i;
+		i = j;
+		j = tmp;
+	}
+	interaction_verified[i][j] = 1;
 }
 
 void Environment::init_interactions() {
-	interaction_verified = new int*[NA]();
 	for (int i = 0; i < NA; i++)
-		interaction_verified[i] = new int[NA]();
-
+		for (int j = 0; j < i + 1; j++)
+			interaction_verified[i][j] = 0;
 }
 
 void Environment::print_mat() {

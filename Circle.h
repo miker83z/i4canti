@@ -9,6 +9,10 @@ struct Circle : Shape {
 		pts[0].x = xnew-radius;
 		pts[0].y = ynew-radius;
 	}
+	void recolor(int newc) {
+		fill_color = newc;
+		line_color = newc;
+	}
 	void draw() {
 		fl_line_style(FL_SOLID,line_width);
 		fl_color(fill_color);

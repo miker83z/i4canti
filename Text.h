@@ -5,6 +5,7 @@ struct Text : Shape {
 	: font(f), content(s), Shape(lw, lc, 0) {
 		add(p);
 	}
+	void set_content(string s) { content = s; }
 	void draw() {
 		fl_font(font, line_width);
 		fl_color(line_color);

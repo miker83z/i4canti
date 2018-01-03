@@ -12,7 +12,9 @@
 using namespace std;
 using Callback = void(*)(Fl_Widget*, void*);
 
-int w{Fl::w()/2}, h{Fl::h()};
+int w = Fl::w(), h = Fl::h();
+int w1 = w * 3 / 8, h1 = w * 3 / 8;	//Window1
+int w2 = w / 4, h2 = h / 2;			//Window2
 struct Windows;
 
 #include "Point.h"
