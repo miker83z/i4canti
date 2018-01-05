@@ -9,6 +9,7 @@ using namespace std;
 class Agent{
 	int position[2];
 	double* ideas;
+	double* initial_ideas;
 	double* direction;
 	Environment* env;
 	string name;
@@ -22,14 +23,14 @@ public:
 	void influence_game(Agent *other);
 	int* get_position();
 	double* get_ideas();
-	void get_influenced(int influenced_idea, double weight);
+	void get_influenced(Agent* influencer);
 	int get_prominent_idea();
 	int get_id();
 	string get_name();
 private:
 	void set_new_position(int i);
-	void setup_ideas(int n);
-	void setup_direction(int n, double* ideas);
+	void setup_ideas();
+	void setup_direction();
 	void update_idea(int idea, double value);
 };
 

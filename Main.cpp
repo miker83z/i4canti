@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
 	if (CONSOLE) {
 		int N = 10;		//Matrix Dim
 		int NC = 4;		//Number of Canti (ideas)
-		int NA = 10;	//Number of Agents
+		int NA = 20;	//Number of Agents
 		int STEP = 10;
 		int END_TIME = 100;
 		if (FALSE) {
