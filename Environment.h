@@ -14,8 +14,6 @@ class Environment {
 	int num_canti;
 	int** mat;
 	vector<Agent*> agents;
-	float** interpersonal_influence;
-	float* susceptibility;
 	int** canti;
 	int** interaction_verified;
 public:
@@ -32,14 +30,12 @@ public:
 	int* get_canto_pos(int i);
 	Agent* get_agent(int i);
 	Agent* get_agent_in_position(int x, int y);
-	float get_interpersonal_influence(int influenced, int influencer);
-	float get_susceptibility(int i);
 	void print_mat();
 	void print_agents_position();
 	void print_agents_ideas();
 private: 
 	void set_canti();
-	void set_interpersonal_influence();
+	void setup_agents();
 };
 
 #endif // ENVIRONMENT_HPP

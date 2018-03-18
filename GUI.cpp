@@ -1,3 +1,5 @@
+#include <iomanip> 
+#include <sstream>
 
 int NA;
 int N;
@@ -26,7 +28,7 @@ bool init() {
 	N = stoi(inbox2.get_value());
 	if (N > 300) { cout << "Field Dim too large\n"; return false; }
 	NA = stoi(inbox1.get_value());
-	if (NA > 20000) { cout << "Too many agents\n"; return false; }
+	if (NA > 20000 || NA > ((N*N) - 4)) { cout << "Too many agents\n"; return false; }
 	NC = stoi(inbox3.get_value());
 	if (NC > 4) { cout << "Only 1,2,3 or 4 Canti are allowed"; return false; }
 	END_TIME = 0;
@@ -78,13 +80,28 @@ void callback1(Fl_Widget*, void*) {
 		double xmin = R, xmax = w1 + R, ymin = R, ymax = h1 + R;
 
 		Environment env(N, NA, NC);
+		//env.print_interpersonal_influence();
+
+		/////////Temp
+		Fl_Double_Window win(w1 + w2 + 13, 0, w1 / 2, h1);
+		Fl_Scroll scroll(0, 0, w1 / 2, h1);
+		vector<Fl_Multiline_Output *> o;
 
 		for (int i = 0; i < NA; i++) {
 			double x0 = (double)env.get_agent(i)->get_position()[0] / N * (xmax - xmin) + xmin;
 			double y0 = (double)env.get_agent(i)->get_position()[1] / N * (ymax - ymin) + ymin;
-			circles.push_back(new Circle(Point(x0, y0), R, 1, FL_WHITE, FL_WHITE));
+			circles.push_back(new Circle(Point(x0, y0), R, 1, get_color_from_ideas(env.get_agent(i)->get_ideas()), FL_WHITE));
 			window->attach(*circles[i]);
+
+			o.push_back(new Fl_Multiline_Output(0, i * 44, (w1 / 2) - 15, 44));
+			o[i]->value(("Agt " + to_string(i)).c_str());
 		}
+
+		scroll.end();
+		win.end();
+		win.resizable(win);
+		win.show();
+		/////////Temp
 
 		int time = 0;
 		while (TRUE) {
@@ -116,12 +133,36 @@ void callback1(Fl_Widget*, void*) {
 
 					env.get_agent(i)->interact();
 					circles[i]->recolor(get_color_from_ideas(env.get_agent(i)->get_ideas()));
+
+					double *tmp = env.get_agent(i)->get_ideas();
+					string s = "Agt\t\t";
+					for (int j = 0; j < env.get_num_canti(); j++) {
+						stringstream stream;
+						stream << fixed << setprecision(2) << tmp[j];
+						s += stream.str() + "\t";
+					}
+					s +="\n" + to_string(i) + "\t\t";
+					tmp = env.get_agent(i)->get_direction();
+					for (int j = 0; j < env.get_num_canti(); j++) {
+						stringstream stream;
+						stream << fixed << setprecision(2) << tmp[j];
+						s += stream.str() + "\t";
+					}
+
+					o[i]->value(s.c_str());
+					o[i]->color(canti_col[env.get_agent(i)->get_prominent_idea()]);
+
 				}
 				Fl::check();
 				Fl::redraw();
 				Sleep(slider1.get_value());
 			}
-			if (STOP) break;
+			if (STOP) {
+				for (int i = 0; i < NA; i++)
+					delete o[i];
+				o.clear();
+				break;
+			}
 		}
 		closing();
 	}

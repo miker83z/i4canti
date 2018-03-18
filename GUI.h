@@ -5,6 +5,8 @@
 #include <FL/Fl_Input.H>
 #include <FL/Fl_Button.H>
 #include <FL/Fl_Text_Display.H>
+#include <FL/Fl_Scroll.H>
+#include <FL/Fl_Multiline_Output.H>
 #include <string>
 #include <vector>
 #include <fstream>

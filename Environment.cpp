@@ -1,35 +1,51 @@
 #include <iostream>
+#include <iomanip> 
 #include <time.h>
 #include "Environment.h"
 #include "Agent.h"
 
-const int W_MODE = 2;	//interpersonal influence, 0 = all equal, 1 = upper triangular
+const int A_MODE = 2;	//interpersonal influence
 
-void Environment::set_interpersonal_influence() {
-	switch (W_MODE) {
-	case 0:
-		for (int i = 0; i < NA; i++)
-			for (int j = 0; j < NA; j++)
-				interpersonal_influence[i][j] = 1 / (float)NA;
-	case 1:
-		for (int i = 0; i < NA; i++)
-			if (i < NA / 2)
-				for (int j = i; j < NA; j++)
-					interpersonal_influence[i][j] = 1 / (float)(NA - i);
-			else
-				interpersonal_influence[i][i] = 1;
-	case 2:
+void Environment::setup_agents() {
+	switch (A_MODE){
+	case 0: {
 		for (int i = 0; i < NA; i++) {
-			interpersonal_influence[i][i] = .7;
-			if (i < NA / 2) {
-				for (int j = 0; j < NA; j++)
-					if (j != i)
-						interpersonal_influence[i][j] = .3 / (float)(NA - 1);
-			}
-			else
-				for (int j = i + 1; j < NA; j++)
-					interpersonal_influence[i][j] = .3 / (float)(NA - i - 1);
+			agents[i]->set_interpersonal_influence(.5);
+			agents[i]->set_susceptibility(.5);
 		}
+	}
+			break;
+	case 1: {
+		int i = 0;
+		for (; i < NA/15; i++){
+			agents[i]->set_interpersonal_influence(.7);
+			agents[i]->set_susceptibility(.3);
+
+		}
+		for (; i < NA; i++) {
+			agents[i]->set_interpersonal_influence(.5);
+			agents[i]->set_susceptibility(.5);
+		}
+	}
+			break;
+	case 2: {
+		int i = 0;
+		for (; i < NA / 15; i++) {
+			agents[i]->set_interpersonal_influence(.7);
+			agents[i]->set_susceptibility(.3);
+
+		}
+		for (; i < NA - (NA / 15); i++) {
+			agents[i]->set_interpersonal_influence(.5);
+			agents[i]->set_susceptibility(.3);
+		}
+		for (; i < NA; i++) {
+			agents[i]->set_interpersonal_influence(.7);
+			agents[i]->set_susceptibility(.3);
+
+		}
+	}
+			break;
 	}
 }
 
@@ -67,14 +83,7 @@ Environment::Environment(int n, int na, int nc) {
 	for (int i = 0; i < na; i++) 
 		interaction_verified[i] = new int[i+1]();
 
-	interpersonal_influence = new float*[na]();
-	for (int i = 0; i < na; i++) 
-		interpersonal_influence[i] = new float[na]();
-	set_interpersonal_influence();
-
-	susceptibility = new float[na];
-	for (int i = 0; i < na; i++)
-		susceptibility[i] = 1 - interpersonal_influence[i][i];
+	setup_agents();
 }
 
 Environment::~Environment() {
@@ -96,12 +105,6 @@ Environment::~Environment() {
 	for (int i = 0; i < NA; i++)
 		delete interaction_verified[i];
 	delete interaction_verified;
-
-	for (int i = 0; i < NA; i++)
-		delete interpersonal_influence[i];
-	delete interpersonal_influence;
-
-	delete susceptibility;
 }
 
 bool Environment::is_allowed_in_position(int x, int y) {
@@ -171,14 +174,6 @@ Agent* Environment::get_agent_in_position(int x, int y) {
 	return NULL;
 }
 
-float Environment::get_interpersonal_influence(int influenced, int influencer) {
-	return interpersonal_influence[influenced][influencer];
-}
-
-float Environment::get_susceptibility(int i) {
-	return susceptibility[i];
-}
-
 void Environment::set_canti() {
 	switch (num_canti) {
 	case 1:
@@ -239,3 +234,4 @@ void Environment::print_agents_ideas() {
 		cout << agents[i]->get_ideas()[j] << "\n";
 	}
 }
+

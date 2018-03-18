@@ -6,23 +6,25 @@
 #include "Agent.h"
 
 const int IDEAS_MODE = 2;		//0 = uniform distr, 1 = (ideas for agent position) 01230123... , 2 = 00..011..122..233..3 
-const int DIRECTION_MODE = 0;	//0 = direction equal to ideas
+const int DIRECTION_MODE = 1;	//0 = direction equal to ideas
 
 int num_canti;
 int n;
 vector<int *> canti;
 
 double get_distance(int* a, int* b);
-int uniform_decision_pick(double* arr, int size, int tru);
+int uniform_decision_pick(double* arr, int size);
 
 void Agent::setup_ideas() {
 	ideas = new double[num_canti]();
 	initial_ideas = new double[num_canti]();
 	switch (IDEAS_MODE) {
-	case 0:
+	case 0: {
 		for (int i = 0; i < num_canti; i++)
 			ideas[i] = 1 / (double)num_canti;
-	case 1:
+	}
+			break;
+	case 1: {
 		if (num_canti == 1) {
 			ideas[0] = 1;
 			return;
@@ -35,7 +37,9 @@ void Agent::setup_ideas() {
 		for (int i = 0; i < num_canti; i++)
 			if (i != id % num_canti)
 				ideas[i] = .5 / (double)(num_canti - 1);
-	case 2:
+	}
+			break;
+	case 2: {
 		if (num_canti == 1) {
 			ideas[0] = 1;
 			return;
@@ -48,12 +52,44 @@ void Agent::setup_ideas() {
 				chosen_idea = i;
 			floor += tmp;
 		}
-		ideas[chosen_idea] = .9;
+		ideas[chosen_idea] = .97;
 		for (int i = 0; i < num_canti; i++)
 			if (i != chosen_idea)
-				ideas[i] = .1 / (double)(num_canti - 1);
-
+				ideas[i] = .03 / (double)(num_canti - 1);
 	}
+			break;
+	case 3: {
+		if (num_canti == 1) {
+			ideas[0] = 1;
+			return;
+		}
+		if (id < (env->get_num_agents() / num_canti)) {
+			ideas[0] = .97;
+			for (int i = 1; i < num_canti; i++)
+				ideas[i] = .03 / ((double)num_canti - 1);
+		}
+		else
+			for (int i = 0; i < num_canti; i++)
+				ideas[i] = 1 / (double)num_canti;
+	}
+			break;
+	case 4: {
+		if (num_canti == 1) {
+			ideas[0] = 1;
+			return;
+		}
+		if (id < (env->get_num_agents() / 2)) {
+			ideas[0] = .97;
+			for (int i = 1; i < num_canti; i++)
+				ideas[i] = .03 / ((double)num_canti - 1);
+		}
+		else
+			for (int i = 0; i < num_canti; i++)
+				ideas[i] = 1 / (double)num_canti;
+	}
+			break;
+	}
+
 	for (int i = 0; i < num_canti; i++)
 		initial_ideas[i] = ideas[i];
 }
@@ -61,9 +97,81 @@ void Agent::setup_ideas() {
 void Agent::setup_direction() {
 	direction = new double[num_canti];
 	switch (DIRECTION_MODE) {
-	case 0:
+	case 0: {
 		for (int i = 0; i < num_canti; i++)
 			direction[i] = ideas[i];
+	}
+			break;
+	case 1: {
+		int tmp = get_prominent_idea();
+		double *tmp_direction = new double[num_canti - 1];
+		for (int i = 0; i < num_canti - 1; i++)
+			tmp_direction[i] = 1 / (double)(num_canti - 1);
+		int tmp_dec = uniform_decision_pick(tmp_direction, (num_canti - 1));
+
+		for (int i = 0; i < num_canti; i++) {
+			if (i == tmp)
+				direction[i] = .2 / (double)(num_canti - 1);
+			else {
+				if (tmp_dec == 0)
+					direction[i] = .8;
+				else 
+					direction[i] = .2 / (double)(num_canti - 1);
+				tmp_dec--;
+			}
+		}
+		current_influencing_idea = tmp;
+		delete tmp_direction;
+	}
+			break;
+	case 2: {
+		for (int i = 0; i < num_canti; i++)
+			direction[i] = 1 / (double)num_canti;
+	}
+			break;
+	}
+}
+
+void Agent::update_idea(int idea, double value) {
+	switch (DIRECTION_MODE) {
+	case 0: {
+		ideas[idea] = value;
+		direction[idea] = value;
+	}
+			break;
+	case 1: {
+		ideas[idea] = value;
+
+		int tmp = get_prominent_idea();
+		if (tmp != current_influencing_idea) {
+			double *tmp_direction = new double[num_canti - 1];
+			for (int i = 0; i < num_canti - 1; i++)
+				tmp_direction[i] = 1 / (double)(num_canti - 1);
+			int tmp_dec = uniform_decision_pick(tmp_direction, (num_canti - 1));
+
+			for (int i = 0; i < num_canti; i++) {
+				if (i == current_influencing_idea)
+					direction[i] = .2 / (double)(num_canti - 1);
+				else {
+					if(tmp_dec == 0)
+						direction[i] = .8;
+					else 
+						direction[i] = .2 / (double)(num_canti - 1);
+					tmp_dec--;
+				}
+			}
+			current_influencing_idea = tmp;
+		}
+	}
+			break;
+	case 2: {
+		ideas[idea] = value;
+	}
+			break;
+	case 3: {
+		ideas[idea] = value;
+	}
+			break;
 	}
 }
 
@@ -95,7 +203,7 @@ Agent::~Agent() {
 }
 
 void Agent::move() {
-	set_new_position( uniform_decision_pick(direction, num_canti, 0) );
+	set_new_position(uniform_decision_pick(direction, num_canti));
 }
 
 void Agent::set_new_position( int canto ) {
@@ -146,14 +254,15 @@ void Agent::interact() {
 void Agent::influence_game(Agent *other) {
 	Agent *influencer = this, *influenced = other;
 
-	float diff = env->get_interpersonal_influence(id, other->get_id()) - env->get_interpersonal_influence(other->get_id(), id);
+	double diff = other->get_interpersonal_influence() - interpersonal_influence;
+	//cout << id << ": " << env->get_interpersonal_influence(id, other->get_id()) << ", " << other->get_id() << ": " << env->get_interpersonal_influence(other->get_id(), id) << "\n";
 	if( diff > 0 ) {
 		influencer = other;
 		influenced = this;
 	}
 	else if (diff == 0) { //Flip a coin
 		double coin[] = { .5, .5 };
-		if (uniform_decision_pick(coin, 2, 0)) {
+		if (uniform_decision_pick(coin, 2)) {
 			influencer = other;
 			influenced = this;
 		}
@@ -161,20 +270,24 @@ void Agent::influence_game(Agent *other) {
 	
 	influenced->get_influenced(influencer);
 	env->set_interaction(influencer, influenced);
-	//cout << influencer->get_name() << " influence " << influenced->get_name() << ": " << influenced->get_ideas()[0] << " + " << influenced->get_ideas()[1] << " = " << influenced->get_ideas()[0] + influenced->get_ideas()[1] << "\n";
+	//cout << influencer->get_name() << " " << influenced->get_name() << influenced->get_ideas()[0] << " + " << influenced->get_ideas()[1] << " + " << influenced->get_ideas()[2] << " + " << influenced->get_ideas()[3] << " = " << influenced->get_ideas()[0] + influenced->get_ideas()[1] + influenced->get_ideas()[2] + influenced->get_ideas()[3] << "\n";
 }
 
 void Agent::get_influenced(Agent* influencer) {
 	int influenced_idea = influencer->get_prominent_idea();
-	double value = ((double)env->get_susceptibility(id)) * ((double)env->get_interpersonal_influence(id, influencer->get_id())) * ideas[influenced_idea] + (1 - (double)env->get_susceptibility(id)) * initial_ideas[influenced_idea];
+	double value = susceptibility * influencer->get_interpersonal_influence() * ideas[influenced_idea] + /*(1 - (double)env->get_susceptibility(id)) * */ ideas[influenced_idea];// initial_ideas[influenced_idea];
+	//double value = ideas[influenced_idea] + (ideas[influenced_idea] * .005);
 
 	double *tmp = new double[num_canti];
-	double min_sum = .1 * (num_canti - 1);
+	double min_sum = .01 * (num_canti - 1);
 	double max_value = 1 - min_sum;
 	int flag = -1;
 
 	if (value > max_value)
 		value = max_value;
+
+	if (value <= 0)
+		value = .01;
 
 	double old_diff = 1 - ideas[influenced_idea];
 	double diff = 1 - value;
@@ -214,6 +327,10 @@ double* Agent::get_ideas() {
 	return ideas;
 }
 
+double* Agent::get_direction() {
+	return direction;
+}
+
 int Agent::get_prominent_idea() {
 	vector<int> max;
 	max.push_back(0);
@@ -231,7 +348,7 @@ int Agent::get_prominent_idea() {
 		double* tmp = new double[tmp_s];
 		for (int i = 0; i < tmp_s; i++)
 			tmp[i] = 1 / double(tmp_s);
-		dp = uniform_decision_pick(tmp, tmp_s, 1);
+		dp = uniform_decision_pick(tmp, tmp_s);
 		delete[] tmp;
 	}
 	return max[dp];
@@ -245,21 +362,27 @@ string Agent::get_name() {
 	return name;
 }
 
-void Agent::update_idea(int idea, double value) {
-	switch (DIRECTION_MODE) {
-	case 0:
-		ideas[idea] = value;
-		direction[idea] = value;
-	default:
-		break;
-	}
+void Agent::set_interpersonal_influence(double val) {
+	interpersonal_influence = val;
+}
+
+void Agent::set_susceptibility(double val) {
+	susceptibility = val;
+}
+
+double Agent::get_interpersonal_influence() {
+	return interpersonal_influence;
+}
+
+double Agent::get_susceptibility() {
+	return susceptibility;
 }
 
 double get_distance(int* a, int* b) {
 	return sqrt(pow(a[0] - b[0], 2) + pow(a[1] - b[1], 2));
 }
 
-int uniform_decision_pick(double* arr, int size, int tru) {
+int uniform_decision_pick(double* arr, int size) {
 	random_device rd;  //Will be used to obtain a seed for the random number engine
 	mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
 	uniform_real_distribution<> dis(0.0, 1.0);

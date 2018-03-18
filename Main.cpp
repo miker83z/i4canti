@@ -92,6 +92,14 @@ int main(int argc, char **argv) {
 	inbox3.set_value("4");
 	inbox4.set_value("1000");
 	b1p = &button1;
+
+
+	//Fl_Scroll* scroll = new Fl_Scroll(w1 + w2 + 13, 0, w1 / 2, h1);
+	//Windows* window3 = new Windows(Point(w1 + w2 + 13, 0), w1 / 2, h1, "Ideas");
+	//scroll->end();
+
+	
+
 	return Fl::run();
 }
 //-------------------------------------------------------------------------------------------------
