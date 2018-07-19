@@ -1,212 +1,125 @@
 #include <cstdlib>
+#include <map>
 #include <random>
 #include <iostream>
 #include <ctime>
 #include <math.h>
 #include "Agent.h"
 
-const int IDEAS_MODE = 2;		//0 = uniform distr, 1 = (ideas for agent position) 01230123... , 2 = 00..011..122..233..3 
-const int DIRECTION_MODE = 1;	//0 = direction equal to ideas
-
 int num_canti;
 int n;
-vector<int *> canti;
+int na;
+int initial_radius;
+double min_sum;
+double max_sum;
+vector<int> suppotive_neighbors;
+vector<double> neig_val;
 
 double get_distance(int* a, int* b);
 int uniform_decision_pick(double* arr, int size);
 
-void Agent::setup_ideas() {
-	ideas = new double[num_canti]();
-	initial_ideas = new double[num_canti]();
-	switch (IDEAS_MODE) {
-	case 0: {
-		for (int i = 0; i < num_canti; i++)
-			ideas[i] = 1 / (double)num_canti;
-	}
-			break;
-	case 1: {
-		if (num_canti == 1) {
-			ideas[0] = 1;
-			return;
-		}
-		if (num_canti == 2) {
-			ideas[0] = .99;
-			ideas[1] = .01;
-		}
-		ideas[id % num_canti] = .5;
-		for (int i = 0; i < num_canti; i++)
-			if (i != id % num_canti)
-				ideas[i] = .5 / (double)(num_canti - 1);
-	}
-			break;
-	case 2: {
-		if (num_canti == 1) {
-			ideas[0] = 1;
-			return;
-		}
-		double tmp = (double)env->get_num_agents() / (double)num_canti;
-		double floor = tmp;
-		int chosen_idea = 0;
-		for (int i = 1; i < num_canti; i++) {
-			if (id >= floor && id <= (floor + tmp))
-				chosen_idea = i;
-			floor += tmp;
-		}
-		ideas[chosen_idea] = .97;
-		for (int i = 0; i < num_canti; i++)
-			if (i != chosen_idea)
-				ideas[i] = .03 / (double)(num_canti - 1);
-	}
-			break;
-	case 3: {
-		if (num_canti == 1) {
-			ideas[0] = 1;
-			return;
-		}
-		if (id < (env->get_num_agents() / num_canti)) {
-			ideas[0] = .97;
-			for (int i = 1; i < num_canti; i++)
-				ideas[i] = .03 / ((double)num_canti - 1);
-		}
-		else
-			for (int i = 0; i < num_canti; i++)
-				ideas[i] = 1 / (double)num_canti;
-	}
-			break;
-	case 4: {
-		if (num_canti == 1) {
-			ideas[0] = 1;
-			return;
-		}
-		if (id < (env->get_num_agents() / 2)) {
-			ideas[0] = .97;
-			for (int i = 1; i < num_canti; i++)
-				ideas[i] = .03 / ((double)num_canti - 1);
-		}
-		else
-			for (int i = 0; i < num_canti; i++)
-				ideas[i] = 1 / (double)num_canti;
-	}
-			break;
-	}
-
-	for (int i = 0; i < num_canti; i++)
-		initial_ideas[i] = ideas[i];
-}
-
-void Agent::setup_direction() {
-	direction = new double[num_canti];
-	switch (DIRECTION_MODE) {
-	case 0: {
-		for (int i = 0; i < num_canti; i++)
-			direction[i] = ideas[i];
-	}
-			break;
-	case 1: {
-		int tmp = get_prominent_idea();
-		double *tmp_direction = new double[num_canti - 1];
-		for (int i = 0; i < num_canti - 1; i++)
-			tmp_direction[i] = 1 / (double)(num_canti - 1);
-		int tmp_dec = uniform_decision_pick(tmp_direction, (num_canti - 1));
-
-		for (int i = 0; i < num_canti; i++) {
-			if (i == tmp)
-				direction[i] = .2 / (double)(num_canti - 1);
-			else {
-				if (tmp_dec == 0)
-					direction[i] = .8;
-				else 
-					direction[i] = .2 / (double)(num_canti - 1);
-				tmp_dec--;
-			}
-		}
-		current_influencing_idea = tmp;
-		delete tmp_direction;
-	}
-			break;
-	case 2: {
-		for (int i = 0; i < num_canti; i++)
-			direction[i] = 1 / (double)num_canti;
-	}
-			break;
-	}
-}
-
-void Agent::update_idea(int idea, double value) {
-	switch (DIRECTION_MODE) {
-	case 0: {
-		ideas[idea] = value;
-		direction[idea] = value;
-	}
-			break;
-	case 1: {
-		ideas[idea] = value;
-
-		int tmp = get_prominent_idea();
-		if (tmp != current_influencing_idea) {
-			double *tmp_direction = new double[num_canti - 1];
-			for (int i = 0; i < num_canti - 1; i++)
-				tmp_direction[i] = 1 / (double)(num_canti - 1);
-			int tmp_dec = uniform_decision_pick(tmp_direction, (num_canti - 1));
-
-			for (int i = 0; i < num_canti; i++) {
-				if (i == current_influencing_idea)
-					direction[i] = .2 / (double)(num_canti - 1);
-				else {
-					if(tmp_dec == 0)
-						direction[i] = .8;
-					else 
-						direction[i] = .2 / (double)(num_canti - 1);
-					tmp_dec--;
-				}
-			}
-			current_influencing_idea = tmp;
-		}
-	}
-			break;
-	case 2: {
-		ideas[idea] = value;
-	}
-			break;
-	case 3: {
-		ideas[idea] = value;
-	}
-			break;
-	}
-}
-
-Agent::Agent(Environment* e, int x, int y, int s) {
+Agent::Agent(Environment* e, int x, int y, int s, double pers, double susc, int vw) {
 	name = "Agent " + to_string(s);
 	id = s;
 	env = e;
 	n = env->get_dim();
+	na = env->get_num_agents();
+	view = initial_radius = vw;
+
+	persuasion = pers;
+	susceptibility = susc;
 
 	//canti
 	num_canti = e->get_num_canti();
-	for (int i = 0; i < num_canti; i++) 
-		canti.push_back(env->get_canto_pos(i));
+	min_sum = .03 / (num_canti - 1.0);
+	max_sum = .97;
 
 	//position
 	position[0] = x;
 	position[1] = y;
 
 	//ideas
-	setup_ideas();
-	setup_direction();
+	ideas = new double[num_canti]();
+	for (int i = 0; i < num_canti; i++)
+		ideas[i] = 1.0 / num_canti;
+	ideas_pre_step = new double[num_canti]();
+	direction = new double[num_canti]();
+
+	leader = false;
+	followers_pre_step = 0;
+	actual_followers = 0;
 }
 
 Agent::~Agent() {
-	canti.clear();
 	delete ideas;
-	delete initial_ideas;
-	delete direction;
+	delete ideas_pre_step;
+	if(direction != NULL)
+		delete direction;
+	suppotive_neighbors.clear();
+	suppotive_neighbors.shrink_to_fit();
+	neig_val.clear();
+	neig_val.shrink_to_fit();
 }
 
-void Agent::move() {
-	set_new_position(uniform_decision_pick(direction, num_canti));
+void Agent::tick() {
+	int* canto; 
+
+	//Save actual ideas before interaction
+	for (int i = 0; i < num_canti; i++)
+		ideas_pre_step[i] = ideas[i];
+
+	//Update view considering followers
+	view = max(initial_radius / (followers_pre_step + 1), 1);
+
+	//INTERACTION
+	interact();
+
+	if (followers_pre_step > na / 10 && get_actual_prominent_idea() == get_prominent_idea_pre_step()) {
+		//Become a Leader
+		cout << "ok\n";
+		leader = true;
+		setDirection();
+		canto = env->get_centers()[uniform_decision_pick(direction, num_canti)];
+		//if (canto[0] && canto[1])
+			//move(canto);
+	}
+	else {
+		//Follow a Leader
+		leader = false;
+		if (suppotive_neighbors.size() > 0) {
+			double sum = 0.0;
+			//Compute total payoff
+			for (int i = 0; i < suppotive_neighbors.size(); i++)
+				sum += neig_val[i];
+			//Set directions considering slices proportional to the payoff obtained choosing each supportive neighbor
+			if (direction != NULL)
+				delete direction;
+			direction = new double[suppotive_neighbors.size()]();
+			for (int i = 0; i < suppotive_neighbors.size(); i++) 
+				direction[i] = neig_val[i] / sum;
+
+			//Pick a direction
+			int tmp = uniform_decision_pick(direction, suppotive_neighbors.size());
+			Agent* designed_agent = env->get_agent(suppotive_neighbors[tmp]);	//Agent picked
+			canto = designed_agent->get_position();	//Agent picked position
+			designed_agent->follow();
+			
+			//MOVEMENT
+			move(canto);
+		}
+		else {
+			setDirection();
+			canto = env->get_centers()[uniform_decision_pick(direction, num_canti)];
+			if (canto[0] && canto[1])
+				move(canto);
+		}
+	}
+
+	suppotive_neighbors.clear();
+	neig_val.clear();
 }
 
-void Agent::set_new_position( int canto ) {
+void Agent::move(int* canto) {
 	int new_position[2];
 	new_position[0] = position[0];
 	new_position[1] = position[1];
@@ -219,7 +132,7 @@ void Agent::set_new_position( int canto ) {
 			tmp_positions[0] = position[0] + i;
 			tmp_positions[1] = position[1] + j;
 			if (tmp_positions[0] >= 0 && tmp_positions[0] < n && tmp_positions[1] >= 0 && tmp_positions[1] < n && env->is_allowed_in_position(tmp_positions[0], tmp_positions[1])) {
-				double tmp = get_distance(tmp_positions, canti[canto]);
+				double tmp = get_distance(tmp_positions, canto);
 				if (tmp < min) {
 					min = tmp;
 					new_position[0] = tmp_positions[0];
@@ -236,87 +149,143 @@ void Agent::set_new_position( int canto ) {
 }
 
 void Agent::interact() {
-	int tmp_positions[2];
-	for (int i = -1; i < 2; i++) {
-		for (int j = -1; j < 2; j++) {
+	//Matrix where rows contains ideas id and columns contains agents id, an entry ij consist in an agent j influencing with an idea i
+	vector<vector<int>> agent_map;
+	agent_map.resize(num_canti);
+	//Matrix where rows contains ideas id and columns contains payoff values associated to agents described above
+	vector<vector<double>> a_value;
+	a_value.resize(num_canti);
+	//Sum of all payoffs for a specific idea
+	double* tmp_payoff_sum = new double[num_canti]();	 
+
+	for (int i = -view; i <= view; i++) {		//Search in agent view
+		for (int j = -view; j <= view; j++) {	//
+			int tmp_positions[2];
 			if (i == 0 && j == 0) j++;
 			tmp_positions[0] = position[0] + i;
 			tmp_positions[1] = position[1] + j;
+			//Boundaries control
 			if (tmp_positions[0] >= 0 && tmp_positions[0] < n && tmp_positions[1] >= 0 && tmp_positions[1] < n) {
-				Agent* other = env->get_agent_in_position(tmp_positions[0], tmp_positions[1]);
-				if (other != NULL && env->check_interaction(this, other))
-					influence_game(other);
+				//Agent to interact with
+				Agent* other = env->get_agent_in_position(tmp_positions[0], tmp_positions[1], 1);
+				if (other != NULL) {
+					int otherStrat = other->get_idea_to_play();	//Other agent ideas played during this interaction
+					double tmpValue = other->get_persuasion() / pow(get_distance(position, tmp_positions), 2);	//Payoff choosing opponent idea 
+					tmp_payoff_sum[otherStrat] += tmpValue;	//Sum the payoff with the others that are choosing that idea 
+
+					//Save interaction results in matrices
+					agent_map[otherStrat].push_back(other->get_id());
+					a_value[otherStrat].push_back(tmpValue);
+				}
 			}
 		}
+	}	
+
+	//Compute total payoff for all ideas
+	double total_ideas_tmp_payoff = 0.0;	
+	for (int i = 0; i < num_canti; i++) {
+		if (tmp_payoff_sum[i] < min_sum) 
+			tmp_payoff_sum[i] = min_sum;
+		total_ideas_tmp_payoff += tmp_payoff_sum[i];
 	}
+	//Payoffs are set to a the relative value (0-1)
+	for (int i = 0; i < num_canti; i++) 
+		tmp_payoff_sum[i] /= total_ideas_tmp_payoff;
+
+	//Compute the new information considering agent susceptibility
+	double* tmp_ideas = new double[num_canti]();
+	for (int i = 0; i < num_canti; i++) 
+		tmp_ideas[i] = ((tmp_payoff_sum[i] - ideas[i]) * susceptibility) + ideas[i];
+
+	double total_ideas_tmp = 0.0;
+	for (int i = 0; i < num_canti; i++) {
+		if (tmp_ideas[i] < min_sum)
+			tmp_ideas[i] = min_sum;
+		total_ideas_tmp += tmp_ideas[i];
+	}
+	//Then update ideas
+	for (int i = 0; i < num_canti; i++)
+		ideas[i] = tmp_ideas[i] / total_ideas_tmp;
+		//set_idea(i, tmp_ideas[i] / total_ideas_tmp);
+
+	//Save most influencial agents informations and clear the remaining
+	int tmpIdea = get_actual_prominent_idea();
+	suppotive_neighbors.clear();
+	suppotive_neighbors.shrink_to_fit();
+	neig_val.clear();
+	neig_val.shrink_to_fit();
+	for (int i = 0; i < agent_map[tmpIdea].size(); i++) {
+		suppotive_neighbors.push_back(agent_map[tmpIdea][i]);
+		neig_val.push_back(a_value[tmpIdea][i]);
+	}
+	delete tmp_payoff_sum;
+	delete tmp_ideas;
 }
 
-void Agent::influence_game(Agent *other) {
-	Agent *influencer = this, *influenced = other;
-
-	double diff = other->get_interpersonal_influence() - interpersonal_influence;
-	//cout << id << ": " << env->get_interpersonal_influence(id, other->get_id()) << ", " << other->get_id() << ": " << env->get_interpersonal_influence(other->get_id(), id) << "\n";
-	if( diff > 0 ) {
-		influencer = other;
-		influenced = this;
-	}
-	else if (diff == 0) { //Flip a coin
-		double coin[] = { .5, .5 };
-		if (uniform_decision_pick(coin, 2)) {
-			influencer = other;
-			influenced = this;
-		}
-	}
-	
-	influenced->get_influenced(influencer);
-	env->set_interaction(influencer, influenced);
-	//cout << influencer->get_name() << " " << influenced->get_name() << influenced->get_ideas()[0] << " + " << influenced->get_ideas()[1] << " + " << influenced->get_ideas()[2] << " + " << influenced->get_ideas()[3] << " = " << influenced->get_ideas()[0] + influenced->get_ideas()[1] + influenced->get_ideas()[2] + influenced->get_ideas()[3] << "\n";
+void Agent::follow() {
+	actual_followers++;
 }
 
-void Agent::get_influenced(Agent* influencer) {
-	int influenced_idea = influencer->get_prominent_idea();
-	double value = susceptibility * influencer->get_interpersonal_influence() * ideas[influenced_idea] + /*(1 - (double)env->get_susceptibility(id)) * */ ideas[influenced_idea];// initial_ideas[influenced_idea];
-	//double value = ideas[influenced_idea] + (ideas[influenced_idea] * .005);
+void Agent::set_followers_pre_step(int fllw) {
+	followers_pre_step = fllw;
+}
 
-	double *tmp = new double[num_canti];
-	double min_sum = .01 * (num_canti - 1);
-	double max_value = 1 - min_sum;
-	int flag = -1;
+void Agent::setDirection() {
+	if (direction != NULL)
+		delete direction;
+	direction = new double[num_canti]();
+	for (int i = 0; i < num_canti; i++)
+		if (i != get_actual_prominent_idea())
+			direction[i] = 1.0 / ((double)num_canti - 1);
+}
 
-	if (value > max_value)
-		value = max_value;
-
-	if (value <= 0)
-		value = .01;
-
-	double old_diff = 1 - ideas[influenced_idea];
-	double diff = 1 - value;
-
-	if (diff != old_diff) {
-		tmp[influenced_idea] = value;
-		for (int i = 0; i < num_canti; i++)
-			if (i != influenced_idea) {
-				tmp[i] = (ideas[i] * diff) / old_diff;
-				if (tmp[i] > max_value) flag = i;
-			}
-
-		if (flag != -1) {
-			tmp[flag] = max_value;
-			double sum = 0;
-			for (int i = 0; i < num_canti; i++)
-				if (i != flag)
-					sum += tmp[i];
-
-			for (int i = 0; i < num_canti; i++)
-				if (i != flag)
-					tmp[i] = (tmp[i] * min_sum) / sum;
+void Agent::set_idea(int idea, double val) {
+	ideas[idea] = val;
+	/*	double* ideas_tmp = new double[num_canti]();
+	double total_ideas_tmp = 0.0;
+	if (val < min_sum)	val = min_sum;
+	if (val > max_sum)	val = max_sum;
+	for (int i = 0; i < num_canti; i++) {
+		if (i == idea) {
+			ideas_tmp[i] = val;
+			total_ideas_tmp += val;
 		}
-
-		for (int i = 0; i < num_canti; i++)
-			update_idea(i, tmp[i]);
+		else {
+			ideas_tmp[i] = ideas[i];
+			total_ideas_tmp += ideas[i];
+		}
 	}
+	for (int i = 0; i < num_canti; i++)
+		ideas[i] = ideas_tmp[i] / total_ideas_tmp;
 
-	delete tmp;
+	ideas[idea] = val;
+	double newsum = 1.0 - val;
+	double sum = 0.0;
+	for (int i = 0; i < num_canti; i++)
+		if (i != idea)
+			sum += ideas[i];
+	if (sum < min_sum * (num_canti - 1)) { sum = min_sum * (num_canti - 1); ideas[idea] = max_sum; }
+	if (sum > max_sum) { sum = max_sum; ideas[idea] = min_sum; }
+	for (int i = 0; i < num_canti; i++)
+		if (i != idea)
+			ideas[i] = (ideas[i] * newsum) / sum;*/
+	//cout << ideas[0] << " " << ideas[1] << " " << ideas[2] << " " << ideas[3] << "\n";
+}
+
+void Agent::set_pre_idea(int i, double val) {
+	ideas_pre_step[i] = val;
+}
+
+void Agent::set_actual_followers(int fllw) {
+	actual_followers = fllw;
+}
+
+int Agent::get_actual_followers() {
+	return actual_followers;
+}
+
+double Agent::get_persuasion() {
+	return persuasion;
 }
 
 int* Agent::get_position() {
@@ -327,21 +296,34 @@ double* Agent::get_ideas() {
 	return ideas;
 }
 
-double* Agent::get_direction() {
-	return direction;
+int Agent::get_prominent_idea_pre_step() {
+	return get_max(ideas_pre_step);
 }
 
-int Agent::get_prominent_idea() {
+void Agent::set_idea_to_play() {
+	actual_chosen_idea = uniform_decision_pick(ideas_pre_step, num_canti);
+}
+
+int Agent::get_idea_to_play() {
+	//return uniform_decision_pick(ideas_pre_step, num_canti);
+	return actual_chosen_idea;
+}
+
+int Agent::get_actual_prominent_idea() {
+	return get_max(ideas);
+}
+
+int Agent::get_max(double *arr) {
 	vector<int> max;
 	max.push_back(0);
 	for (int i = 1; i < num_canti; i++)
-		if (ideas[i] > ideas[max[0]]){
+		if (arr[i] > arr[max[0]]) {
 			max.clear();
 			max.push_back(i);
 		}
-		else if (ideas[i] == ideas[max[0]])
+		else if (arr[i] == arr[max[0]])
 			max.push_back(i);
-	
+
 	int dp = 0;
 	int tmp_s = max.size();
 	if (tmp_s > 1) {
@@ -362,20 +344,8 @@ string Agent::get_name() {
 	return name;
 }
 
-void Agent::set_interpersonal_influence(double val) {
-	interpersonal_influence = val;
-}
-
-void Agent::set_susceptibility(double val) {
-	susceptibility = val;
-}
-
-double Agent::get_interpersonal_influence() {
-	return interpersonal_influence;
-}
-
-double Agent::get_susceptibility() {
-	return susceptibility;
+bool Agent::isLeader() {
+	return leader;
 }
 
 double get_distance(int* a, int* b) {
@@ -389,9 +359,8 @@ int uniform_decision_pick(double* arr, int size) {
 	double decision = dis(gen);
 	int i = 0;
 	for (double floor = 0.0; i < size - 1; i++) {
-		if (decision >= floor && decision <= (floor + arr[i])) {
+		if (decision >= floor && decision <= (floor + arr[i])) 
 			return i;
-		}
 		floor += arr[i];
 	}
 }

@@ -11,7 +11,7 @@ struct Circle : Shape {
 	}
 	void recolor(int newc) {
 		fill_color = newc;
-		//line_color = newc;
+		line_color = newc;
 	}
 	void draw() {
 		fl_line_style(FL_SOLID,line_width);

@@ -13,29 +13,30 @@ class Environment {
 	int NA;
 	int num_canti;
 	int** mat;
+	int** mat_prec;
 	vector<Agent*> agents;
+	int** centers;
 	int** canti;
-	int** interaction_verified;
 public:
-	Environment(int N, int NA, int n_canti);
+	Environment(int N, int NA, int n_canti, int radius, int tiers_number, int* agents_tiers, double** agents_properties, double** agents_ideas);
 	~Environment();
 	bool is_allowed_in_position(int x, int y);
-	bool check_interaction(Agent* first, Agent* second);
-	void set_interaction(Agent* first, Agent* second);
 	void init_interactions();
 	void set_in_position(int x, int y, int o_x, int o_y);
 	int get_dim();
 	int get_num_canti();
+	int** get_centers();
+	int** get_canti();
 	int get_num_agents();
-	int* get_canto_pos(int i);
 	Agent* get_agent(int i);
-	Agent* get_agent_in_position(int x, int y);
+	Agent* get_agent_in_position(int x, int y, int z);
 	void print_mat();
 	void print_agents_position();
 	void print_agents_ideas();
+	void update_centers();
 private: 
 	void set_canti();
-	void setup_agents();
+	void set_leaders();
 };
 
 #endif // ENVIRONMENT_HPP

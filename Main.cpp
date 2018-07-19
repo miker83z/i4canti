@@ -9,31 +9,19 @@
 #include <iostream>
 #include "Agent.h"
 #include "Environment.h"
+#include "Plot.h"
 #include "GUI.h"
+#include "GUI.cpp"
 
 using namespace std;
 const bool CONSOLE = FALSE;
 
-Windows window2(Point(w1 + 10, 0), w2, h2, "Controller");
 //Line line1(Point(0, h / 4), Point(w, h / 4), 3, FL_WHITE);
 //Line line2(Point(w / 2, 0), Point(w / 2, h / 4), 3, FL_WHITE);
 //Text text1(Point(50, 50), FL_HELVETICA, 25, FL_RED, "Parametri");
 
-Slider slider1(Point(50, 80), 100, 30, "Time speed");
-In_box inbox1(Point(50, 120), 100, 30, "Agents (MAX 15k)");
-In_box inbox2(Point(50, 160), 100, 30, "Field dim NxN (MAX 300)");
-In_box inbox3(Point(50, 200), 100, 30, "Canti (1, 2, 3 or 4)");
-In_box inbox4(Point(50, 240), 100, 30, "EndTime");
-Text textT(Point(215, 260), FL_HELVETICA, 15, FL_WHITE, "0");
-
-vector<Circle*> circles;
-Button* b1p;
-
-#include "GUI.cpp"
-Button button1(Point(50, h / 2 - 50), 100, 30, "Go", callback1);
-
 int main(int argc, char **argv) {
-	if (CONSOLE) {
+	/*if (CONSOLE) {
 		int N = 10;		//Matrix Dim
 		int NC = 4;		//Number of Canti (ideas)
 		int NA = 20;	//Number of Agents
@@ -52,14 +40,13 @@ int main(int argc, char **argv) {
 			cin >> STEP;
 		}
 
-		Environment* env = new Environment(N, NA, NC);
+		Environment* env = new Environment(N, NA, NC, N/10);
 		env->print_mat();
 
 		for (int time = 0; time < END_TIME; time++) {
 			env->init_interactions();
 			for (int i = 0; i < NA; i++) {
-				env->get_agent(i)->move();
-				env->get_agent(i)->interact();
+				env->get_agent(i)->tick();
 			}
 			if (!(time % STEP)) {
 				char c;
@@ -73,33 +60,10 @@ int main(int argc, char **argv) {
 		env->print_mat();
 		system("PAUSE");
 		return 0;
-	}
+	}*/
 	
 	srand(time(NULL));
-
-	window2.attach(slider1);
-	window2.attach(inbox1);
-	window2.attach(inbox2);
-	window2.attach(inbox3);
-	window2.attach(inbox4);
-	window2.attach(button1);
-	window2.attach(textT);
-
-	slider1.set_value(500);
-	slider1.set_bounds(25, 1000);
-	inbox1.set_value("100");
-	inbox2.set_value("50");
-	inbox3.set_value("4");
-	inbox4.set_value("1000");
-	b1p = &button1;
-
-
-	//Fl_Scroll* scroll = new Fl_Scroll(w1 + w2 + 13, 0, w1 / 2, h1);
-	//Windows* window3 = new Windows(Point(w1 + w2 + 13, 0), w1 / 2, h1, "Ideas");
-	//scroll->end();
-
-	
-
+	gui_start();
 	return Fl::run();
 }
 //-------------------------------------------------------------------------------------------------

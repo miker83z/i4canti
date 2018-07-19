@@ -7,41 +7,50 @@
 using namespace std;
 
 class Agent{
-	int position[2];
+	double persuasion;
+	double susceptibility;
 	double* ideas;
-	double* initial_ideas;
+	double* ideas_pre_step;
+	int actual_chosen_idea;
+	int view;
+	int followers_pre_step;
+	int actual_followers;
+	bool leader;
+
+	int position[2];
 	double* direction;
-	int current_influencing_idea;
+
 	Environment* env;
 	string name;
 	int id;
 
-	double interpersonal_influence;
-	double susceptibility;
-
 public:
-	Agent(Environment* e, int x, int y, int s);
+	Agent(Environment* e, int x, int y, int s, double pers, double susc, int rd);
 	~Agent();
-	void move();
-	void interact(); 
-	void influence_game(Agent *other);
+	void tick();
+
+	void follow();
+	void set_followers_pre_step(int fllw);
+	void set_idea(int i, double val);
+	void set_pre_idea(int i, double val);
+	void set_actual_followers(int fllw);
+	int get_actual_followers();
 	int* get_position();
 	double* get_ideas();
-	double* get_direction();
-	void get_influenced(Agent* influencer);
-	int get_prominent_idea();
+	double get_persuasion();
+	int get_prominent_idea_pre_step();
+	int get_actual_prominent_idea();
 	int get_id();
 	string get_name();
+	bool isLeader();
+	int get_idea_to_play();
+	void set_idea_to_play();
 
-	void set_interpersonal_influence(double val);
-	void set_susceptibility(double val);
-	double get_interpersonal_influence();
-	double get_susceptibility();
 private:
-	void set_new_position(int i);
-	void setup_ideas();
-	void setup_direction();
-	void update_idea(int idea, double value);
+	void move(int* canto);
+	void interact();
+	void setDirection();
+	int get_max(double *arr);
 };
 
 #endif // AGENT_HPP
