@@ -135,18 +135,9 @@ void Agent::move(int* canto) {
 	for (int i = -1; i < 2; i++){
 		for (int j = -1; j < 2; j++){
 			if ( i == 0 && j == 0 ) j++;
-			////////////////
-			int i2 = position[0] + i, j2 = position[1] + j;
-			if (i2 < 0) i2 = n + i2;
-			if (i2 >= n) i2 = i2 - n + 2;
-			if (j2 < 0) j2 = n + j2;
-			if (j2 >= n) j2 = j2 - n + 2;
-			////////////////
-			tmp_positions[0] = i2;
-			tmp_positions[1] = j2;
-			if(tmp_positions[1] < 0 || tmp_positions[0] < 0)
-				cout << tmp_positions[0] << " " << tmp_positions[1] << " - " << position[0] << " " << position[1] << " - " << i << " " << j << "\n";
-			if (env->is_allowed_in_position(tmp_positions[0], tmp_positions[1])) {
+			tmp_positions[0] = position[0] + i;
+			tmp_positions[1] = position[1] + j;
+			if (tmp_positions[0] >= 0 && tmp_positions[0] < n && tmp_positions[1] >= 0 && tmp_positions[1] < n && env->is_allowed_in_position(tmp_positions[0], tmp_positions[1])) {
 				double tmp = get_distance(tmp_positions, canto);
 				if (tmp < min) {
 					min = tmp;
@@ -372,13 +363,7 @@ bool Agent::isLeader() {
 }
 
 double get_distance(int* a, int* b) {
-	int tmp1 = a[0] - b[0];
-	int tmp2 = (a[0] + b[0]) % n;
-	int x = tmp1 < tmp1 ? tmp1 : tmp2;
-	tmp1 = a[1] - b[1];
-	tmp2 = (a[1] + b[1]) % n;
-	int y = tmp1 < tmp1 ? tmp1 : tmp2;
-	return sqrt(pow(x, 2) + pow(y, 2));
+	return sqrt(pow(a[0] - b[0], 2) + pow(a[1] - b[1], 2));
 }
 
 int uniform_decision_pick(double* arr, int size) {
