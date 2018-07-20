@@ -12,8 +12,11 @@ int na;
 int initial_radius;
 double min_sum;
 double max_sum;
-vector<int> suppotive_neighbors;
-vector<double> neig_val;
+vector<vector<int>> agent_map;
+vector<vector<double>> a_value;
+double softness;
+//vector<int> suppotive_neighbors;
+//vector<double> neig_val;
 
 double get_distance(int* a, int* b);
 int uniform_decision_pick(double* arr, int size);
@@ -25,6 +28,7 @@ Agent::Agent(Environment* e, int x, int y, int s, double pers, double susc, int 
 	n = env->get_dim();
 	na = env->get_num_agents();
 	view = initial_radius = vw;
+	softness = .1;
 
 	persuasion = pers;
 	susceptibility = susc;
@@ -55,10 +59,10 @@ Agent::~Agent() {
 	delete ideas_pre_step;
 	if(direction != NULL)
 		delete direction;
-	suppotive_neighbors.clear();
-	suppotive_neighbors.shrink_to_fit();
-	neig_val.clear();
-	neig_val.shrink_to_fit();
+	//suppotive_neighbors.clear();
+	//suppotive_neighbors.shrink_to_fit();
+	//neig_val.clear();
+	//neig_val.shrink_to_fit();
 }
 
 void Agent::tick() {
@@ -73,14 +77,16 @@ void Agent::tick() {
 
 	//INTERACTION
 	interact();
-
-	if (leader) {
+	move();
+	/*if (leader) {
 		setDirection();
 		canto = env->get_centers()[uniform_decision_pick(direction, num_canti)];
-		if (canto[0] && canto[1])
-			move(canto);
+		//if (canto[0] && canto[1])
+		move();
 	}
 	else {
+		vector<int> suppotive_neighbors = agent_map[get_actual_prominent_idea()];
+		vector<double> neig_val = a_value[get_actual_prominent_idea()];
 		//Follow a Leader
 		if (suppotive_neighbors.size() > 0) {
 			double sum = 0.0;
@@ -111,22 +117,39 @@ void Agent::tick() {
 			}
 			
 			//MOVEMENT
-			move(canto);
+			move();
 		}
 		else {
 			setDirection();
 			canto = env->get_centers()[uniform_decision_pick(direction, num_canti)];
-			if (canto[0] && canto[1])
-				move(canto);
+			//if (canto[0] && canto[1])
+			move();
 		}
-	}
+	}*/
 
-	suppotive_neighbors.clear();
-	neig_val.clear();
+	//suppotive_neighbors.clear();
+	//neig_val.clear();
+	for (int i = 0; i < num_canti; i++) {
+		agent_map[i].clear();
+		a_value[i].clear();
+	}
+	agent_map.clear();
+	a_value.clear();
 }
 
 void Agent::move() {
-
+	int tot = view * view - 1;
+	tot = tot < 1 ? 1 : tot;
+	if (agent_map[get_actual_prominent_idea()].size() / tot < ideas[get_actual_prominent_idea()] * ( 1 - softness ) ) {
+		int x = rand() % n, y = rand() % n;
+		while (!env->is_allowed_in_position(x, y)) {
+			x = rand() % n;
+			y = rand() % n;
+		}
+		env->set_in_position(x, y, position[0], position[1]);
+		position[0] = x;
+		position[1] = y;
+	}
 }
 
 void Agent::move(int* canto) {
@@ -160,10 +183,8 @@ void Agent::move(int* canto) {
 
 void Agent::interact() {
 	//Matrix where rows contains ideas id and columns contains agents id, an entry ij consist in an agent j influencing with an idea i
-	vector<vector<int>> agent_map;
 	agent_map.resize(num_canti);
 	//Matrix where rows contains ideas id and columns contains payoff values associated to agents described above
-	vector<vector<double>> a_value;
 	a_value.resize(num_canti);
 	//Sum of all payoffs for a specific idea
 	double* tmp_payoff_sum = new double[num_canti]();	 
@@ -180,7 +201,7 @@ void Agent::interact() {
 				Agent* other = env->get_agent_in_position(tmp_positions[0], tmp_positions[1], 1);
 				if (other != NULL) {
 					int otherStrat = other->get_idea_to_play();	//Other agent ideas played during this interaction
-					double tmpValue = ( other->get_persuasion() * ( (double)(1 + other->get_followers_pre_step()) / na ) ) / pow(get_distance(position, tmp_positions), 2);	//Payoff choosing opponent idea 
+					double tmpValue = ( other->get_persuasion() /* * ( (double)(1 + other->get_followers_pre_step()) / na )*/ ) / pow(get_distance(position, tmp_positions), 2);	//Payoff choosing opponent idea 
 					tmp_payoff_sum[otherStrat] += tmpValue;	//Sum the payoff with the others that are choosing that idea 
 					//cout << tmpValue << " \n";
 					//Save interaction results in matrices
@@ -219,15 +240,15 @@ void Agent::interact() {
 		//set_idea(i, tmp_ideas[i] / total_ideas_tmp);
 
 	//Save most influencial agents informations and clear the remaining
-	int tmpIdea = get_actual_prominent_idea();
-	suppotive_neighbors.clear();
+	//int tmpIdea = get_actual_prominent_idea();
+	/*suppotive_neighbors.clear();
 	suppotive_neighbors.shrink_to_fit();
 	neig_val.clear();
 	neig_val.shrink_to_fit();
 	for (int i = 0; i < agent_map[tmpIdea].size(); i++) {
 		suppotive_neighbors.push_back(agent_map[tmpIdea][i]);
 		neig_val.push_back(a_value[tmpIdea][i]);
-	}
+	}*/
 	delete tmp_payoff_sum;
 	delete tmp_ideas;
 }
@@ -377,7 +398,7 @@ int uniform_decision_pick(double* arr, int size) {
 	double decision = dis(gen);
 	int i = 0;
 	for (double floor = 0.0; i < size - 1; i++) {
-		if (decision >= floor && decision <= (floor + arr[i])) 
+		if (decision >= floor && decision <= (floor + arr[i]))
 			return i;
 		floor += arr[i];
 	}
