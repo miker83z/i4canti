@@ -50,6 +50,7 @@ public:
 
 private:
 	void move(int* canto);
+	void move();
 	void interact();
 	void setDirection();
 	int get_max(double *arr);

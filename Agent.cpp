@@ -125,6 +125,10 @@ void Agent::tick() {
 	neig_val.clear();
 }
 
+void Agent::move() {
+
+}
+
 void Agent::move(int* canto) {
 	int new_position[2];
 	new_position[0] = position[0];
