@@ -40,8 +40,10 @@ Environment::Environment(int n, int na, int nc, int radius, int tiers_number, in
 			}
 			Agent* ag = new Agent(this, x, y, agent_counter, agents_properties[i][0], agents_properties[i][1], radius);
 			agents.push_back(ag);
-			for (int j = 0; j < num_canti; j++)
+			for (int j = 0; j < num_canti; j++) {
 				ag->set_idea(j, agents_ideas[i][j]);
+				ag->set_pre_idea(j, agents_ideas[i][j]);
+			}
 			mat[x][y] = agent_counter++;
 		}
 	}
