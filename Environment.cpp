@@ -109,8 +109,10 @@ void Environment::update_centers() {
 	//Vector of agents for each idea
 	vector<Agent*>* arr = new vector<Agent*>[num_canti]();
 	//Divide agents considering their prominent ideas
-	for (int i = 0; i < NA; i++)
+	for (int i = 0; i < NA; i++) {
 		arr[agents[i]->get_actual_prominent_idea()].push_back(agents[i]);
+		agents[i]->setLeader(false);
+	}
 
 	/*Group Leader*/
 	for (int i = 0; i < num_canti; i++) {
@@ -121,6 +123,7 @@ void Environment::update_centers() {
 			if (arr[i][j]->get_actual_followers() > max)
 				most_followed_agent_position = j;
 		if (most_followed_agent_position > -1) {
+			arr[i][most_followed_agent_position]->setLeader(true);
 			centers[i][0] = arr[i][most_followed_agent_position]->get_position()[0];
 			centers[i][1] = arr[i][most_followed_agent_position]->get_position()[1];
 		}

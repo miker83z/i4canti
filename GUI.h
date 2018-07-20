@@ -18,11 +18,12 @@ struct Windows;
 
 int NA;
 int N;
-int NC = 4;
+int NC = 2;
 int radius;
 int agents_tiers[6];
 double* agents_properties[6];
 double* agents_ideas[6];
+int* numbers_shuffle;
 int END_TIME;
 double R;
 Fl_Color canti_col[4];

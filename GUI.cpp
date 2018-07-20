@@ -1,4 +1,5 @@
 #include <iomanip>
+#include <algorithm> 
 #include <ctime>
 #include <sstream>
 
@@ -127,13 +128,15 @@ void callback1(Fl_Widget*, void*) {
 
 				//MAIN PROCEDURE
 				env.init_interactions();
+				random_shuffle(&numbers_shuffle[0], &numbers_shuffle[NA]);
 				for (int i = 0; i < NA; i++) {
-					env.get_agent(i)->tick();
-					circles[i]->recolor(get_color_from_ideas(env.get_agent(i)->get_ideas()));
+					int ir = numbers_shuffle[i];
+					env.get_agent(ir)->tick();
+					circles[ir]->recolor(get_color_from_ideas(env.get_agent(ir)->get_ideas()));
 
-					double x0 = (double)env.get_agent(i)->get_position()[0] / N * (xmax - xmin) + xmin;
-					double y0 = (double)env.get_agent(i)->get_position()[1] / N * (ymax - ymin) + ymin;
-					circles[i]->relocate(x0, y0);
+					double x0 = (double)env.get_agent(ir)->get_position()[0] / N * (xmax - xmin) + xmin;
+					double y0 = (double)env.get_agent(ir)->get_position()[1] / N * (ymax - ymin) + ymin;
+					circles[ir]->relocate(x0, y0);
 				}
 				if (SIM_DATA_FLAG)	plot->update_tick(time);
 				Fl::check();
@@ -159,6 +162,9 @@ bool init() {
 		agents_tiers[3] = stoi(inboxTier4.get_value());
 		NA = agents_tiers[0] + agents_tiers[1] + agents_tiers[2] + agents_tiers[3];
 		if (NA > 20000 || NA > N * N - 1) { open_dialog("Error: Too many agents"); return false; } 
+		numbers_shuffle = new int[NA]();
+		for (int i = 0; i < NA; i++)
+			numbers_shuffle[i] = i;
 
 		radius = stoi(inboxRadius.get_value());
 		if (radius <= 0 || radius > N) { open_dialog("Error: Radius not allowed"); return false; } 
@@ -223,6 +229,8 @@ void closing() {
 
 	if (plot != NULL)
 		delete plot;
+
+	delete numbers_shuffle;
 
 	PAUSE = FALSE;
 	CONTINUE = TRUE;
@@ -332,7 +340,7 @@ void gui_start() {
 	sliderTimeSpeed.set_value(500);
 	sliderTimeSpeed.set_bounds(25, 1000);
 	window2.attach(inboxN);
-	inboxN.set_value("50");
+	inboxN.set_value("25");
 	window2.attach(inboxEndTime);
 	inboxEndTime.set_value("1000");
 	window2.attach(textT);
@@ -347,7 +355,7 @@ void gui_start() {
 	window2.attach(radio[0]);
 	window2.attach(radio[1]);
 	window2.attach(radio[2]);
-	radio[2].on();
+	radio[0].on();
 	window2.attach(textIdeas);
 
 	window3.attach(textTier1);
@@ -381,7 +389,7 @@ void gui_start() {
 	window3.attach(textTier3);
 	window3.attach(inboxTier3);
 	window3.attach(inboxTier3);
-	inboxTier3.set_value("25");
+	inboxTier3.set_value("0");
 	window3.attach(sliderTier3P);
 	window3.attach(buttonTier3I);
 	sliderTier3P.set_value(.5);
@@ -395,7 +403,7 @@ void gui_start() {
 	window3.attach(textTier4);
 	window3.attach(inboxTier4);
 	window3.attach(inboxTier4);
-	inboxTier4.set_value("25");
+	inboxTier4.set_value("0");
 	window3.attach(sliderTier4P);
 	window3.attach(buttonTier4I);
 	sliderTier4P.set_value(.5);

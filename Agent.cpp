@@ -74,18 +74,14 @@ void Agent::tick() {
 	//INTERACTION
 	interact();
 
-	if (followers_pre_step > na / 10 && get_actual_prominent_idea() == get_prominent_idea_pre_step()) {
-		//Become a Leader
-		cout << "ok\n";
-		leader = true;
+	if (leader) {
 		setDirection();
 		canto = env->get_centers()[uniform_decision_pick(direction, num_canti)];
-		//if (canto[0] && canto[1])
-			//move(canto);
+		if (canto[0] && canto[1])
+			move(canto);
 	}
 	else {
 		//Follow a Leader
-		leader = false;
 		if (suppotive_neighbors.size() > 0) {
 			double sum = 0.0;
 			//Compute total payoff
@@ -100,9 +96,19 @@ void Agent::tick() {
 
 			//Pick a direction
 			int tmp = uniform_decision_pick(direction, suppotive_neighbors.size());
+			double as = neig_val[tmp];
+			for (int i = 0; i < suppotive_neighbors.size(); i++)
+				if (neig_val[i] > as)
+					tmp = i;
 			Agent* designed_agent = env->get_agent(suppotive_neighbors[tmp]);	//Agent picked
 			canto = designed_agent->get_position();	//Agent picked position
 			designed_agent->follow();
+			
+			if (rand() % 1 ) {
+				canto = new int[2]();
+				canto[0] = rand() % n;
+				canto[1] = rand() % n;
+			}
 			
 			//MOVEMENT
 			move(canto);
@@ -170,9 +176,9 @@ void Agent::interact() {
 				Agent* other = env->get_agent_in_position(tmp_positions[0], tmp_positions[1], 1);
 				if (other != NULL) {
 					int otherStrat = other->get_idea_to_play();	//Other agent ideas played during this interaction
-					double tmpValue = other->get_persuasion() / pow(get_distance(position, tmp_positions), 2);	//Payoff choosing opponent idea 
+					double tmpValue = ( other->get_persuasion() * ( (double)(1 + other->get_followers_pre_step()) / na ) ) / pow(get_distance(position, tmp_positions), 2);	//Payoff choosing opponent idea 
 					tmp_payoff_sum[otherStrat] += tmpValue;	//Sum the payoff with the others that are choosing that idea 
-
+					//cout << tmpValue << " \n";
 					//Save interaction results in matrices
 					agent_map[otherStrat].push_back(other->get_id());
 					a_value[otherStrat].push_back(tmpValue);
@@ -222,8 +228,16 @@ void Agent::interact() {
 	delete tmp_ideas;
 }
 
+void Agent::setLeader(bool nominee) {
+	leader = nominee;
+}
+
 void Agent::follow() {
 	actual_followers++;
+}
+
+int Agent::get_followers_pre_step() {
+	return followers_pre_step;
 }
 
 void Agent::set_followers_pre_step(int fllw) {

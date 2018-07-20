@@ -34,7 +34,9 @@ public:
 	void set_idea(int i, double val);
 	void set_pre_idea(int i, double val);
 	void set_actual_followers(int fllw);
+	void setLeader(bool nominee);
 	int get_actual_followers();
+	int get_followers_pre_step();
 	int* get_position();
 	double* get_ideas();
 	double get_persuasion();
