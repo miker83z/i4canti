@@ -1,10 +1,12 @@
 #include <iostream>
+#include <random>
 #include <time.h>
 #include "Environment.h"
 #include "Agent.h"
 
 
 const int IDEAS_MODE = 1;		//0 = uniform distr, 1 = (ideas for agent position) 01230123...
+mt19937 *gen;
 
 Environment::Environment(int n, int na, int nc, int radius, int tiers_number, int* agents_tiers, double** agents_properties, double** agents_ideas) {
 	this->N = n;
@@ -44,6 +46,7 @@ Environment::Environment(int n, int na, int nc, int radius, int tiers_number, in
 				ag->set_idea(j, agents_ideas[i][j]);
 				ag->set_pre_idea(j, agents_ideas[i][j]);
 			}
+			cout << ag->get_id() << ", " << ag->get_ideas()[0] << ", " << ag->get_ideas()[1] << ", " << ag->get_persuasion() << ", " << ag->get_susceptibility() << "\n";
 			mat[x][y] = agent_counter++;
 		}
 	}
@@ -254,5 +257,15 @@ void Environment::print_agents_ideas() {
 			cout << agents[i]->get_ideas()[j] << ", ";
 		}
 		cout << agents[i]->get_ideas()[j] << "\n";
+	}
+}
+
+int Environment::uniform_decision_pick(double* arr, int size) {
+	double decision = rand() % 1;
+	int i = 0;
+	for (double floor = 0.0; i < size - 1; i++) {
+		if (decision >= floor && decision <= (floor + arr[i]))
+			return i;
+		floor += arr[i];
 	}
 }

@@ -1,6 +1,5 @@
 #include <cstdlib>
 #include <map>
-#include <random>
 #include <iostream>
 #include <ctime>
 #include <math.h>
@@ -16,7 +15,6 @@ vector<int> suppotive_neighbors;
 vector<double> neig_val;
 
 double get_distance(int* a, int* b);
-int uniform_decision_pick(double* arr, int size);
 
 Agent::Agent(Environment* e, int x, int y, int s, double pers, double susc, int vw) {
 	name = "Agent " + to_string(s);
@@ -69,56 +67,31 @@ void Agent::tick() {
 		ideas_pre_step[i] = ideas[i];
 
 	//Update view considering followers
-	view = max(initial_radius / (followers_pre_step + 1), 1);
+	double tmpView = initial_radius * (suppotive_neighbors.size() / (followers_pre_step + 1));
+	view = tmpView > 1 ? tmpView : 1;
 
 	//INTERACTION
 	interact();
 
-	if (leader) {
-		setDirection();
-		canto = env->get_centers()[uniform_decision_pick(direction, num_canti)];
-		if (canto[0] && canto[1])
-			move(canto);
+	if (!leader && neig_val.size() > 0) {
+		//Follow a Leader
+		int max = -1;
+		for (int i = 0; i < neig_val.size(); i++)
+			if(neig_val[i] > max)
+				max = i;
+		Agent* designed_agent = env->get_agent(suppotive_neighbors[max]);	//Agent picked
+		canto = designed_agent->get_position();	//Agent picked position
+		designed_agent->follow();
+			
+		//MOVEMENT
+		move(canto);
 	}
 	else {
-		//Follow a Leader
-		if (suppotive_neighbors.size() > 0) {
-			double sum = 0.0;
-			//Compute total payoff
-			for (int i = 0; i < suppotive_neighbors.size(); i++)
-				sum += neig_val[i];
-			//Set directions considering slices proportional to the payoff obtained choosing each supportive neighbor
-			if (direction != NULL)
-				delete direction;
-			direction = new double[suppotive_neighbors.size()]();
-			for (int i = 0; i < suppotive_neighbors.size(); i++) 
-				direction[i] = neig_val[i] / sum;
-
-			//Pick a direction
-			int tmp = uniform_decision_pick(direction, suppotive_neighbors.size());
-			double as = neig_val[tmp];
-			for (int i = 0; i < suppotive_neighbors.size(); i++)
-				if (neig_val[i] > as)
-					tmp = i;
-			Agent* designed_agent = env->get_agent(suppotive_neighbors[tmp]);	//Agent picked
-			canto = designed_agent->get_position();	//Agent picked position
-			designed_agent->follow();
-			
-			if (rand() % 1 ) {
-				canto = new int[2]();
-				canto[0] = rand() % n;
-				canto[1] = rand() % n;
-			}
-			
-			//MOVEMENT
+		//Agent is Leader or has no group
+		setDirection();
+		canto = env->get_centers()[env->uniform_decision_pick(direction, num_canti)];
+		if (canto[0] && canto[1])
 			move(canto);
-		}
-		else {
-			setDirection();
-			canto = env->get_centers()[uniform_decision_pick(direction, num_canti)];
-			if (canto[0] && canto[1])
-				move(canto);
-		}
 	}
 
 	suppotive_neighbors.clear();
@@ -141,11 +114,11 @@ void Agent::move(int* canto) {
 			if (i2 >= n) i2 = i2 - n + 2;
 			if (j2 < 0) j2 = n + j2;
 			if (j2 >= n) j2 = j2 - n + 2;
-			////////////////
 			tmp_positions[0] = i2;
 			tmp_positions[1] = j2;
-			if(tmp_positions[1] < 0 || tmp_positions[0] < 0)
-				cout << tmp_positions[0] << " " << tmp_positions[1] << " - " << position[0] << " " << position[1] << " - " << i << " " << j << "\n";
+			////////////////
+			//if(tmp_positions[1] >= n || tmp_positions[0] >= n )
+				//cout << tmp_positions[0] << " " << tmp_positions[1] << "......" << position[0] << " " << position[1] << "\n";
 			if (env->is_allowed_in_position(tmp_positions[0], tmp_positions[1])) {
 				double tmp = get_distance(tmp_positions, canto);
 				if (tmp < min) {
@@ -177,15 +150,22 @@ void Agent::interact() {
 		for (int j = -view; j <= view; j++) {	//
 			int tmp_positions[2];
 			if (i == 0 && j == 0) j++;
-			tmp_positions[0] = position[0] + i;
-			tmp_positions[1] = position[1] + j;
+			////////////////
+			int i2 = position[0] + i, j2 = position[1] + j;
+			if (i2 < 0) i2 = n + i2;
+			if (i2 >= n) i2 = i2 - n + 2;
+			if (j2 < 0) j2 = n + j2;
+			if (j2 >= n) j2 = j2 - n + 2;
+			tmp_positions[0] = i2;
+			tmp_positions[1] = j2;
+			////////////////
 			//Boundaries control
 			if (tmp_positions[0] >= 0 && tmp_positions[0] < n && tmp_positions[1] >= 0 && tmp_positions[1] < n) {
 				//Agent to interact with
 				Agent* other = env->get_agent_in_position(tmp_positions[0], tmp_positions[1], 1);
 				if (other != NULL) {
 					int otherStrat = other->get_idea_to_play();	//Other agent ideas played during this interaction
-					double tmpValue = ( other->get_persuasion() * ( (double)(1 + other->get_followers_pre_step()) / na ) ) / pow(get_distance(position, tmp_positions), 2);	//Payoff choosing opponent idea 
+					double tmpValue = ( other->get_persuasion() /* ( (double)(1 + other->get_followers_pre_step()) / na )*/ ) / pow(get_distance(position, tmp_positions), 2);	//Payoff choosing opponent idea 
 					tmp_payoff_sum[otherStrat] += tmpValue;	//Sum the payoff with the others that are choosing that idea 
 					//cout << tmpValue << " \n";
 					//Save interaction results in matrices
@@ -311,6 +291,10 @@ double Agent::get_persuasion() {
 	return persuasion;
 }
 
+double Agent::get_susceptibility() {
+	return susceptibility;
+}
+
 int* Agent::get_position() {
 	return position;
 }
@@ -324,7 +308,7 @@ int Agent::get_prominent_idea_pre_step() {
 }
 
 void Agent::set_idea_to_play() {
-	actual_chosen_idea = uniform_decision_pick(ideas_pre_step, num_canti);
+	actual_chosen_idea = env->uniform_decision_pick(ideas_pre_step, num_canti);
 }
 
 int Agent::get_idea_to_play() {
@@ -353,7 +337,7 @@ int Agent::get_max(double *arr) {
 		double* tmp = new double[tmp_s];
 		for (int i = 0; i < tmp_s; i++)
 			tmp[i] = 1 / double(tmp_s);
-		dp = uniform_decision_pick(tmp, tmp_s);
+		dp = env->uniform_decision_pick(tmp, tmp_s);
 		delete[] tmp;
 	}
 	return max[dp];
@@ -373,23 +357,10 @@ bool Agent::isLeader() {
 
 double get_distance(int* a, int* b) {
 	int tmp1 = a[0] - b[0];
-	int tmp2 = (a[0] + b[0]) % n;
+	int tmp2 = (a[0] + b[0]) % ( n - 1 ) + 1;
 	int x = tmp1 < tmp1 ? tmp1 : tmp2;
 	tmp1 = a[1] - b[1];
-	tmp2 = (a[1] + b[1]) % n;
+	tmp2 = (a[1] + b[1]) % ( n - 1 ) + 1;
 	int y = tmp1 < tmp1 ? tmp1 : tmp2;
 	return sqrt(pow(x, 2) + pow(y, 2));
-}
-
-int uniform_decision_pick(double* arr, int size) {
-	random_device rd;  //Will be used to obtain a seed for the random number engine
-	mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
-	uniform_real_distribution<> dis(0.0, 1.0);
-	double decision = dis(gen);
-	int i = 0;
-	for (double floor = 0.0; i < size - 1; i++) {
-		if (decision >= floor && decision <= (floor + arr[i])) 
-			return i;
-		floor += arr[i];
-	}
 }

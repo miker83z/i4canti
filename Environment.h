@@ -34,6 +34,7 @@ public:
 	void print_agents_position();
 	void print_agents_ideas();
 	void update_centers();
+	int Environment::uniform_decision_pick(double* arr, int size);
 private: 
 	void set_canti();
 	void set_leaders();

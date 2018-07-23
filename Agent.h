@@ -40,6 +40,7 @@ public:
 	int* get_position();
 	double* get_ideas();
 	double get_persuasion();
+	double get_susceptibility();
 	int get_prominent_idea_pre_step();
 	int get_actual_prominent_idea();
 	int get_id();
