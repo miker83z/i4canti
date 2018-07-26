@@ -13,7 +13,7 @@ struct Windows : Fl_Double_Window {
 	}
 	void draw() {
 		Fl_Double_Window::draw();
-		for(int i=0;i<shapes.size();i++)
+		for(size_t i=0;i<shapes.size();i++)
 			shapes[i]->draw();
 	}
 };

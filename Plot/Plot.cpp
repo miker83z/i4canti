@@ -11,15 +11,15 @@ Plot::Plot( Environment* e, string directory) {
 	env = e;
 
 	//Agents.csv
-	for (int i = 0; i < env->get_num_agents(); i++) {
+	for (int i = 0; i < env->get_agents_number(); i++) {
 		*agts << to_string(env->get_agent(i)->get_id());
 	}
 	*agts << endrow;
 
 	//SimulationProperties
-	*prop << "Environment Dimension N" << env->get_dim() << endrow;
-	*prop << "Number of Agents" << env->get_num_agents() << endrow;
-	*prop << "Number of Ideas" << env->get_num_canti() << endrow;
+	*prop << "Environment Dimension N" << env->get_dimension_size() << endrow;
+	*prop << "Number of Agents" << env->get_agents_number() << endrow;
+	*prop << "Number of Ideas" << env->get_ideas_number() << endrow;
 }
 
 Plot::~Plot() {
@@ -29,11 +29,11 @@ Plot::~Plot() {
 
 void Plot::update_tick(int tick) {
 	*agts << tick;
-	for (int i = 0; i < env->get_num_agents(); i++) {
+	for (int i = 0; i < env->get_agents_number(); i++) {
 		Agent *a = env->get_agent(i);
 		string s = "";
-		for (int j = 0; j < env->get_num_canti(); j++) {
-			if (j != env->get_num_canti() - 1)
+		for (int j = 0; j < env->get_ideas_number(); j++) {
+			if (j != env->get_ideas_number() - 1)
 				s += to_string(a->get_ideas()[j]) + ',';
 			else
 				s += to_string(a->get_ideas()[j]);

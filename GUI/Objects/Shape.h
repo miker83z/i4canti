@@ -6,7 +6,7 @@ struct Shape {
 	~Shape() {}
 	void add(Point p) { pts.push_back(p); }
 	void move(int dx, int dy) {
-		for(int i=0; i<pts.size(); i++) {
+		for(size_t i=0; i<pts.size(); i++) {
 			pts[i].x += dx;
 			pts[i].y += dy;
 		}

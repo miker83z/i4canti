@@ -2,11 +2,17 @@
 #include <algorithm> 
 #include <ctime>
 #include <sstream>
+#include <iostream>
+
+#include "GUI.h"
+#include "../Plot/Plot.h"
+#include "../Environment.h"
+#include "../Agent.h"
 
 int w = Fl::w(), h = Fl::h();
-int w1 = w * 3 / 8, h1 = w * 3 / 8;	//Window1
-int w2 = w / 6, h2 = h / 1.87;		//Window2
-int w3 = w / 3, h3 = h / 1.87;		//Window3
+int w1 = static_cast<int>(w * 3 / 8), h1 = static_cast<int>(w * 3 / 8);	//Window1
+int w2 = static_cast<int>(w / 6), h2 = static_cast<int>(h / 1.87);		//Window2
+int w3 = static_cast<int>(w / 3), h3 = static_cast<int>(h / 1.87);		//Window3
 Plot *plot;
 
 //Window2 Controller
@@ -74,114 +80,44 @@ Windows* dialog;
 Text textDialog(Point(50, 50), FL_HELVETICA, 15, FL_WHITE, "Errore");
 Button buttonDialog(Point(w1 / 4 - 100, h1 / 4 - 50), 100, 30, "Ok", close_dialog);
 
-void callback1(Fl_Widget*, void*) {
-	if (init()) {
-		double xmin = R, xmax = w1 + R, ymin = R, ymax = h1 + R;
-
-		Environment env(N, NA, NC, radius, 4, agents_tiers, agents_properties, agents_ideas);
-		if (SIM_DATA_FLAG) {
-			try {
-				auto t = time(nullptr);
-				auto tm = *localtime(&t);
-				ostringstream oss;
-				oss << std::put_time(&tm, "_%Y%m%d_%H-%M-%S");
-
-				string OutputFolder = "SimulationData\\Sim" + oss.str();
-				if (!CreateDirectory(OutputFolder.c_str(), NULL) && !ERROR_ALREADY_EXISTS == GetLastError()) {
-					throw exception();
-				}
-				plot = new Plot(&env, OutputFolder);
-			}
-			catch (const std::exception &ex) { std::cout << "Exception was thrown: " << ex.what() << std::endl; }
-		}
-		for (int i = 0; i < NA; i++) {
-			double x0 = (double)env.get_agent(i)->get_position()[0] / N * (xmax - xmin) + xmin;
-			double y0 = (double)env.get_agent(i)->get_position()[1] / N * (ymax - ymin) + ymin;
-			circles.push_back(new Circle(Point(x0, y0), R, 1, FL_WHITE, FL_WHITE));
-			window->attach(*circles[i]);
-		}
-
-		int time = 0;
-		while (TRUE) {
-			Sleep(200);
-			Fl::check();
-			if (CONTINUE) {								//CONTINUE
-				END_TIME += stoi(inboxEndTime.get_value());
-				CONTINUE = FALSE;
-			}
-			RUNNING = TRUE;
-			for (; time < END_TIME && !STOP; time++) {
-
-				if (PAUSE) {							//PAUSE											
-					buttonPAUSE.set_label("Play");
-					buttonSTOP.hide();
-					buttonCONTINUE.hide();
-					while (PAUSE) {
-						Sleep(50);
-						Fl::check();
-					}
-					buttonPAUSE.set_label("Pause"); 
-					buttonSTOP.show();
-					buttonCONTINUE.show();
-				}
-				textT.set_content(to_string(time));
-
-				//MAIN PROCEDURE
-				env.init_interactions();
-				random_shuffle(&numbers_shuffle[0], &numbers_shuffle[NA]);
-				for (int i = 0; i < NA; i++) {
-					int ir = numbers_shuffle[i];
-					env.get_agent(ir)->tick();
-					circles[ir]->recolor(get_color_from_ideas(env.get_agent(ir)->get_ideas()));
-
-					double x0 = (double)env.get_agent(ir)->get_position()[0] / N * (xmax - xmin) + xmin;
-					double y0 = (double)env.get_agent(ir)->get_position()[1] / N * (ymax - ymin) + ymin;
-					circles[ir]->relocate(x0, y0);
-				}
-				if (SIM_DATA_FLAG)	plot->update_tick(time);
-				Fl::check();
-				Fl::redraw();
-				Sleep(sliderTimeSpeed.get_value());
-			}
-			RUNNING = FALSE;
-			if (STOP) break;
-		}
-		//plot.close();
-		closing();
-	}
-}
-
+// init function, used to start the process
 bool init() {
-	try{
+	try {
+		// Environment dimension size
 		N = stoi(inboxN.get_value());
-		if (N > 300) {	open_dialog("Error: Environment dimension (N) too large"); return false; }
+		if (N > 300) { open_dialog("Error: Environment dimension (N) too large"); return false; }
 
+		// Number of agents for each tier
 		agents_tiers[0] = stoi(inboxTier1.get_value());
 		agents_tiers[1] = stoi(inboxTier2.get_value());
 		agents_tiers[2] = stoi(inboxTier3.get_value());
 		agents_tiers[3] = stoi(inboxTier4.get_value());
 		NA = agents_tiers[0] + agents_tiers[1] + agents_tiers[2] + agents_tiers[3];
-		if (NA > 20000 || NA > N * N - 1) { open_dialog("Error: Too many agents"); return false; } 
-		numbers_shuffle = new int[NA]();
+		if (NA > 20000 || NA > N * N - 1) { open_dialog("Error: Too many agents"); return false; }
+		numbers_shuffle = new int[NA]();	// used to shuffle agents when picked for interaction
 		for (int i = 0; i < NA; i++)
 			numbers_shuffle[i] = i;
 
-		radius = stoi(inboxRadius.get_value());
-		if (radius <= 0 || radius > N) { open_dialog("Error: Radius not allowed"); return false; } 
-		radius = N / radius;
+		//radius for agents view
+		radius = N; /* stoi(inboxRadius.get_value());
+					if (radius <= 0 || radius > N) { open_dialog("Error: Radius not allowed"); return false; }
+					radius = N / radius; */
 
-		if (N < 1 || NA < 1 || NC < 1) { open_dialog("Error"); return false; } 
+		if (N < 1 || NA < 1) { open_dialog("Error"); return false; }
 
 		R = 300 / N;
 		END_TIME = 0;
-	} catch (const std::exception&) { open_dialog("Error"); return false; }
+	}
+	catch (const std::exception&) { open_dialog("Error"); return false; }
 
+	//agents properties and ideas
 	for (int i = 0; i < 4; i++) {
 		agents_properties[i] = new double[2]();
 		agents_ideas[i] = new double[NC]();
 	}
 
-	srand(time(NULL));
+	// properties
+	srand((unsigned int)time(NULL));
 	agents_properties[0][0] = random_flag[1] ? ((double)rand() / (RAND_MAX)) : sliderTier1P.get_value();
 	agents_properties[0][1] = random_flag[2] ? ((double)rand() / (RAND_MAX)) : sliderTier1S.get_value();
 	agents_properties[1][0] = random_flag[4] ? ((double)rand() / (RAND_MAX)) : sliderTier2P.get_value();
@@ -190,14 +126,30 @@ bool init() {
 	agents_properties[2][1] = random_flag[8] ? ((double)rand() / (RAND_MAX)) : sliderTier3S.get_value();
 	agents_properties[3][0] = random_flag[10] ? ((double)rand() / (RAND_MAX)) : sliderTier4P.get_value();
 	agents_properties[3][1] = random_flag[11] ? ((double)rand() / (RAND_MAX)) : sliderTier4S.get_value();
-	
+
+	// ideas
 	for (int i = 0; i < NC; i++) {
-		agents_ideas[0][i] = sliderTier1I[i].get_value();
-		agents_ideas[1][i] = sliderTier2I[i].get_value();
-		agents_ideas[2][i] = sliderTier3I[i].get_value();
-		agents_ideas[3][i] = sliderTier4I[i].get_value();
+		// for each idea
+		agents_ideas[0][i] = random_flag[3] ? ((double)rand() / (RAND_MAX)) : sliderTier1I[i].get_value();
+		agents_ideas[1][i] = random_flag[6] ? ((double)rand() / (RAND_MAX)) : sliderTier2I[i].get_value();
+		agents_ideas[2][i] = random_flag[9] ? ((double)rand() / (RAND_MAX)) : sliderTier3I[i].get_value();
+		agents_ideas[3][i] = random_flag[12] ? ((double)rand() / (RAND_MAX)) : sliderTier4I[i].get_value();
 	}
 
+	double min_value_for_ideas = .03 / (NC - 1.0);
+	double *tier_ideas_sum_tmp = new double[4]();
+	for (int i = 0; i < 4; i++) {
+		tier_ideas_sum_tmp[i] = 0;
+		for (int j = 0; j < NC; j++) {
+			if (agents_ideas[i][j] < min_value_for_ideas) agents_ideas[i][j] = min_value_for_ideas;
+			tier_ideas_sum_tmp[i] += agents_ideas[i][j];
+		}
+		for (int j = 0; j < NC; j++)
+			agents_ideas[i][j] /= tier_ideas_sum_tmp[i];
+	}
+	delete tier_ideas_sum_tmp;
+
+	//colors
 	canti_col[0] = fl_rgb_color(255, 10, 10);
 	canti_col[1] = fl_rgb_color(10, 10, 255);
 	canti_col[2] = fl_rgb_color(10, 255, 10);
@@ -217,6 +169,95 @@ bool init() {
 	return true;
 }
 
+// main function
+void callback1(Fl_Widget*, void*) {
+	if (init()) {
+		double xmin = R, xmax = w1 + R, ymin = R, ymax = h1 + R;
+
+		// create environment
+		Environment env(N, NA, NC, 4, agents_tiers, agents_properties, agents_ideas, radius);
+		
+		// CSV writing
+		if (SIM_DATA_FLAG) {
+			try {
+				auto t = time(nullptr);
+				auto tm = *localtime(&t);
+				ostringstream oss;
+				oss << std::put_time(&tm, "_%Y%m%d_%H-%M-%S");
+
+				string OutputFolder = "SimulationData\\Sim" + oss.str();
+				if (!CreateDirectory(OutputFolder.c_str(), NULL) && !ERROR_ALREADY_EXISTS == GetLastError()) {
+					throw exception();
+				}
+				plot = new Plot(&env, OutputFolder);
+			}
+			catch (const std::exception &ex) { std::cout << "Exception was thrown: " << ex.what() << std::endl; }
+		}
+
+		// first draw of agents
+		for (int i = 0; i < NA; i++) {
+			double x0 = (double)env.get_agent(i)->get_position()[0] / N * (xmax - xmin) + xmin;
+			double y0 = (double)env.get_agent(i)->get_position()[1] / N * (ymax - ymin) + ymin;
+			circles.push_back(new Circle(Point(static_cast<int>(x0), static_cast<int>(y0)), static_cast<int>(R), 1, FL_WHITE, FL_WHITE));
+			window->attach(*circles[i]);
+		}
+
+		// start main
+		int time = 0;
+		while (TRUE) {
+			Sleep(200);
+			Fl::check();
+			if (CONTINUE) {								//CONTINUE
+				END_TIME += stoi(inboxEndTime.get_value());
+				CONTINUE = FALSE;
+			}
+			RUNNING = TRUE;
+			// main loop
+			for (; time < END_TIME && !STOP; time++) {
+
+				if (PAUSE) {							//PAUSE											
+					buttonPAUSE.set_label("Play");
+					buttonSTOP.hide();
+					buttonCONTINUE.hide();
+					while (PAUSE) {
+						Sleep(50);
+						Fl::check();
+					}
+					buttonPAUSE.set_label("Pause"); 
+					buttonSTOP.show();
+					buttonCONTINUE.show();
+				}
+				textT.set_content(to_string(time));
+
+				//MAIN PROCEDURE
+				env.init_time_step();
+				random_shuffle(&numbers_shuffle[0], &numbers_shuffle[NA]); //shuffle agents before picking one
+				for (int i = 0; i < NA; i++) {
+					int agent_shuffled = numbers_shuffle[i];
+					
+					//TICK
+					//env.get_agent(agent_shuffled)->tick();
+					//////
+
+					//graphical updates
+					circles[agent_shuffled]->recolor(get_color_from_ideas(env.get_agent(agent_shuffled)->get_ideas()));
+					double x0 = (double)env.get_agent(agent_shuffled)->get_position()[0] / N * (xmax - xmin) + xmin;
+					double y0 = (double)env.get_agent(agent_shuffled)->get_position()[1] / N * (ymax - ymin) + ymin;
+					circles[agent_shuffled]->relocate(static_cast<int>(x0), static_cast<int>(y0));
+				}
+				if (SIM_DATA_FLAG)	plot->update_tick(time);
+				Fl::check();
+				Fl::redraw();
+				Sleep(static_cast<DWORD>(sliderTimeSpeed.get_value()));
+			}
+			RUNNING = FALSE;
+			if (STOP) break;
+		}
+		closing();
+	}
+}
+
+// function used to clear windows
 void closing() {
 	buttonPAUSE.hide();
 	buttonCONTINUE.hide();
@@ -259,7 +300,7 @@ Fl_Color get_color_from_ideas(double *ideas) {
 		max[0] = max[1];
 		max[1] = tmp;
 	}
-	return fl_color_average(canti_col[max[0]], canti_col[max[1]], ideas[max[0]] / (ideas[max[0]] + ideas[max[1]]));
+	return fl_color_average(canti_col[max[0]], canti_col[max[1]], static_cast<float>(ideas[max[0]] / (ideas[max[0]] + ideas[max[1]])));
 }
 
 void pause(Fl_Widget*, void*) {
@@ -279,7 +320,7 @@ void open_dialog(string s) {
 	dialog->attach(textDialog);
 	dialog->attach(buttonDialog);
 
-	cout << s + "\n";
+	std::cout << s + "\n";
 	textDialog.set_content(s);
 	dialog->show();
 	while (dialog->shown()) Fl::wait();

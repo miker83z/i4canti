@@ -1,8 +1,8 @@
 #ifndef PLOT_HPP
 #define PLOT_HPP
 
-#include "Environment.h"
-#include "Agent.h"
+#include "../Environment.h"
+#include "../Agent.h"
 
 using namespace std;
 
