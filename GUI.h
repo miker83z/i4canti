@@ -18,7 +18,7 @@ struct Windows;
 
 int NA;
 int N;
-int NC = 4;
+int NC = 2;
 int radius;
 int agents_tiers[6];
 double* agents_properties[6];

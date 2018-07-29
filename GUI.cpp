@@ -1,4 +1,5 @@
 #include <iomanip>
+#include <algorithm> 
 #include <ctime>
 #include <sstream>
 
@@ -73,11 +74,83 @@ Windows* dialog;
 Text textDialog(Point(50, 50), FL_HELVETICA, 15, FL_WHITE, "Errore");
 Button buttonDialog(Point(w1 / 4 - 100, h1 / 4 - 50), 100, 30, "Ok", close_dialog);
 
+bool init() {
+	try {
+		N = stoi(inboxN.get_value());
+		if (N > 300) { open_dialog("Error: Environment dimension (N) too large"); return false; }
+
+		agents_tiers[0] = stoi(inboxTier1.get_value());
+		agents_tiers[1] = stoi(inboxTier2.get_value());
+		agents_tiers[2] = stoi(inboxTier3.get_value());
+		agents_tiers[3] = stoi(inboxTier4.get_value());
+		NA = agents_tiers[0] + agents_tiers[1] + agents_tiers[2] + agents_tiers[3];
+		if (NA > 20000 || NA > N * N - 1) { open_dialog("Error: Too many agents"); return false; }
+
+		//radius for agents view
+		radius = N; /* stoi(inboxRadius.get_value());
+					if (radius <= 0 || radius > N) { open_dialog("Error: Radius not allowed"); return false; }
+					radius = N / radius; */
+
+		if (N < 1 || NA < 1 || NC < 1) { open_dialog("Error"); return false; }
+
+		R = 300 / N;
+		END_TIME = 0;
+	}
+	catch (const std::exception&) { open_dialog("Error"); return false; }
+
+	//agents properties and ideas
+	for (int i = 0; i < 4; i++) {
+		agents_properties[i] = new double[2]();
+		agents_ideas[i] = new double[NC]();
+	}
+
+	// properties
+	agents_properties[0][0] = random_flag[1] ? -1 : sliderTier1P.get_value();
+	agents_properties[0][1] = random_flag[2] ? -1 : sliderTier1S.get_value();
+	agents_properties[1][0] = random_flag[4] ? -1 : sliderTier2P.get_value();
+	agents_properties[1][1] = random_flag[5] ? -1 : sliderTier2S.get_value();
+	agents_properties[2][0] = random_flag[7] ? -1 : sliderTier3P.get_value();
+	agents_properties[2][1] = random_flag[8] ? -1 : sliderTier3S.get_value();
+	agents_properties[3][0] = random_flag[10] ? -1 : sliderTier4P.get_value();
+	agents_properties[3][1] = random_flag[11] ? -1 : sliderTier4S.get_value();
+
+	// ideas
+	for (int i = 0; i < NC; i++) {
+		agents_ideas[0][i] = random_flag[0] ? -1 : sliderTier1I[i].get_value();
+		agents_ideas[1][i] = random_flag[3] ? -1 : sliderTier2I[i].get_value();
+		agents_ideas[2][i] = random_flag[6] ? -1 : sliderTier3I[i].get_value();
+		agents_ideas[3][i] = random_flag[9] ? -1 : sliderTier4I[i].get_value();
+	}
+
+	canti_col[0] = fl_rgb_color(255, 10, 10);
+	canti_col[1] = fl_rgb_color(10, 10, 255);
+	canti_col[2] = fl_rgb_color(10, 255, 10);
+	canti_col[3] = fl_rgb_color(255, 255, 255);
+
+	if (FIRST_TIME) {
+		window2.attach(buttonPAUSE);
+		window2.attach(buttonCONTINUE);
+		window2.attach(buttonSTOP);
+		FIRST_TIME = FALSE;
+	}
+	buttonPAUSE.show();
+	buttonCONTINUE.show();
+	buttonSTOP.show();
+	buttonGO.hide();
+
+	return true;
+}
+
+// main function
 void callback1(Fl_Widget*, void*) {
 	if (init()) {
 		double xmin = R, xmax = w1 + R, ymin = R, ymax = h1 + R;
 
+		// create environment
 		Environment env(N, NA, NC, radius, 4, agents_tiers, agents_properties, agents_ideas);
+		int *numbers_shuffle = env.get_agents_shuffle();
+
+		// CSV writing
 		if (SIM_DATA_FLAG) {
 			try {
 				auto t = time(nullptr);
@@ -93,6 +166,8 @@ void callback1(Fl_Widget*, void*) {
 			}
 			catch (const std::exception &ex) { std::cout << "Exception was thrown: " << ex.what() << std::endl; }
 		}
+
+		// first draw of agents
 		for (int i = 0; i < NA; i++) {
 			double x0 = (double)env.get_agent(i)->get_position()[0] / N * (xmax - xmin) + xmin;
 			double y0 = (double)env.get_agent(i)->get_position()[1] / N * (ymax - ymin) + ymin;
@@ -100,6 +175,7 @@ void callback1(Fl_Widget*, void*) {
 			window->attach(*circles[i]);
 		}
 
+		// start main
 		int time = 0;
 		while (TRUE) {
 			Sleep(200);
@@ -127,13 +203,19 @@ void callback1(Fl_Widget*, void*) {
 
 				//MAIN PROCEDURE
 				env.init_interactions();
+				random_shuffle(&numbers_shuffle[0], &numbers_shuffle[NA]);
 				for (int i = 0; i < NA; i++) {
-					env.get_agent(i)->tick();
-					circles[i]->recolor(get_color_from_ideas(env.get_agent(i)->get_ideas()));
+					int agent_id = numbers_shuffle[i];
 
-					double x0 = (double)env.get_agent(i)->get_position()[0] / N * (xmax - xmin) + xmin;
-					double y0 = (double)env.get_agent(i)->get_position()[1] / N * (ymax - ymin) + ymin;
-					circles[i]->relocate(x0, y0);
+					//TICK
+					env.get_agent(agent_id)->tick();
+					/////
+
+					//graphical updates
+					circles[agent_id]->recolor(get_color_from_ideas(env.get_agent(agent_id)->get_ideas()));
+					double x0 = (double)env.get_agent(agent_id)->get_position()[0] / N * (xmax - xmin) + xmin;
+					double y0 = (double)env.get_agent(agent_id)->get_position()[1] / N * (ymax - ymin) + ymin;
+					circles[agent_id]->relocate(x0, y0);
 				}
 				if (SIM_DATA_FLAG)	plot->update_tick(time);
 				Fl::check();
@@ -146,69 +228,6 @@ void callback1(Fl_Widget*, void*) {
 		//plot.close();
 		closing();
 	}
-}
-
-bool init() {
-	try{
-		N = stoi(inboxN.get_value());
-		if (N > 300) {	open_dialog("Error: Environment dimension (N) too large"); return false; }
-
-		agents_tiers[0] = stoi(inboxTier1.get_value());
-		agents_tiers[1] = stoi(inboxTier2.get_value());
-		agents_tiers[2] = stoi(inboxTier3.get_value());
-		agents_tiers[3] = stoi(inboxTier4.get_value());
-		NA = agents_tiers[0] + agents_tiers[1] + agents_tiers[2] + agents_tiers[3];
-		if (NA > 20000 || NA > N * N - 1) { open_dialog("Error: Too many agents"); return false; } 
-
-		radius = stoi(inboxRadius.get_value());
-		if (radius <= 0 || radius > N) { open_dialog("Error: Radius not allowed"); return false; } 
-		radius = N / radius;
-
-		if (N < 1 || NA < 1 || NC < 1) { open_dialog("Error"); return false; } 
-
-		R = 300 / N;
-		END_TIME = 0;
-	} catch (const std::exception&) { open_dialog("Error"); return false; }
-
-	for (int i = 0; i < 4; i++) {
-		agents_properties[i] = new double[2]();
-		agents_ideas[i] = new double[NC]();
-	}
-
-	srand(time(NULL));
-	agents_properties[0][0] = random_flag[1] ? ((double)rand() / (RAND_MAX)) : sliderTier1P.get_value();
-	agents_properties[0][1] = random_flag[2] ? ((double)rand() / (RAND_MAX)) : sliderTier1S.get_value();
-	agents_properties[1][0] = random_flag[4] ? ((double)rand() / (RAND_MAX)) : sliderTier2P.get_value();
-	agents_properties[1][1] = random_flag[5] ? ((double)rand() / (RAND_MAX)) : sliderTier2S.get_value();
-	agents_properties[2][0] = random_flag[7] ? ((double)rand() / (RAND_MAX)) : sliderTier3P.get_value();
-	agents_properties[2][1] = random_flag[8] ? ((double)rand() / (RAND_MAX)) : sliderTier3S.get_value();
-	agents_properties[3][0] = random_flag[10] ? ((double)rand() / (RAND_MAX)) : sliderTier4P.get_value();
-	agents_properties[3][1] = random_flag[11] ? ((double)rand() / (RAND_MAX)) : sliderTier4S.get_value();
-	
-	for (int i = 0; i < NC; i++) {
-		agents_ideas[0][i] = sliderTier1I[i].get_value();
-		agents_ideas[1][i] = sliderTier2I[i].get_value();
-		agents_ideas[2][i] = sliderTier3I[i].get_value();
-		agents_ideas[3][i] = sliderTier4I[i].get_value();
-	}
-
-	canti_col[0] = fl_rgb_color(255, 10, 10);
-	canti_col[1] = fl_rgb_color(10, 10, 255);
-	canti_col[2] = fl_rgb_color(10, 255, 10);
-	canti_col[3] = fl_rgb_color(255, 255, 255);
-
-	if (FIRST_TIME) {
-		window2.attach(buttonPAUSE);
-		window2.attach(buttonCONTINUE);
-		window2.attach(buttonSTOP);
-		FIRST_TIME = FALSE;
-	}
-	buttonPAUSE.show();
-	buttonCONTINUE.show();
-	buttonSTOP.show();
-	buttonGO.hide();
-
-	return true;
 }
 
 void closing() {
@@ -332,7 +351,7 @@ void gui_start() {
 	sliderTimeSpeed.set_value(500);
 	sliderTimeSpeed.set_bounds(25, 1000);
 	window2.attach(inboxN);
-	inboxN.set_value("50");
+	inboxN.set_value("25");
 	window2.attach(inboxEndTime);
 	inboxEndTime.set_value("1000");
 	window2.attach(textT);
@@ -347,7 +366,7 @@ void gui_start() {
 	window2.attach(radio[0]);
 	window2.attach(radio[1]);
 	window2.attach(radio[2]);
-	radio[2].on();
+	radio[0].on();
 	window2.attach(textIdeas);
 
 	window3.attach(textTier1);
@@ -381,7 +400,7 @@ void gui_start() {
 	window3.attach(textTier3);
 	window3.attach(inboxTier3);
 	window3.attach(inboxTier3);
-	inboxTier3.set_value("25");
+	inboxTier3.set_value("0");
 	window3.attach(sliderTier3P);
 	window3.attach(buttonTier3I);
 	sliderTier3P.set_value(.5);
@@ -395,7 +414,7 @@ void gui_start() {
 	window3.attach(textTier4);
 	window3.attach(inboxTier4);
 	window3.attach(inboxTier4);
-	inboxTier4.set_value("25");
+	inboxTier4.set_value("0");
 	window3.attach(sliderTier4P);
 	window3.attach(buttonTier4I);
 	sliderTier4P.set_value(.5);

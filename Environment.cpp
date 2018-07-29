@@ -1,253 +1,202 @@
 #include <iostream>
+#include <random>
+#include <chrono>
 #include <time.h>
 #include "Environment.h"
 #include "Agent.h"
 
-
-const int IDEAS_MODE = 1;		//0 = uniform distr, 1 = (ideas for agent position) 01230123...
+mt19937 rng;
 
 Environment::Environment(int n, int na, int nc, int radius, int tiers_number, int* agents_tiers, double** agents_properties, double** agents_ideas) {
-	this->N = n;
-	this->NA = na;
-	this->num_canti = nc;
+	rng = mt19937(chrono::high_resolution_clock::now().time_since_epoch().count());
 	
-	//matrix
-	mat = new int*[n]();
-	for (int i = 0; i < n; i++) {
-		mat[i] = new int[n]();
-		for (int j = 0; j < n; j++)
-			mat[i][j] = -1;
+	this->dimension_size = n;
+	this->agents_number = na;
+	this->ideas_number = nc;
+
+	//field allocation
+	field = new int*[dimension_size]();
+	field_precedent_step = new int*[dimension_size]();
+	for (int i = 0; i < dimension_size; i++) {
+		field[i] = new int[dimension_size]();
+		field_precedent_step[i] = new int[dimension_size]();
+		for (int j = 0; j < dimension_size; j++)
+			field_precedent_step[i][j] = field[i][j] = -1;
 	}
 
-	//centers & canti
-	centers = new int*[nc];
-	for (int i = 0; i < nc; i++)
-		centers[i] = new int[2];
-	canti = new int*[nc];
-	for (int i = 0; i < nc; i++)
-		canti[i] = new int[2];
-	set_canti();
+	//ideas_centers
+	ideas_centers = new int*[ideas_number];
+	for (int i = 0; i < ideas_number; i++)
+		ideas_centers[i] = new int[2];
+	ideas_agents_number = new int[ideas_number]();
 
-	//agents
-	srand(time(NULL));
+	//agents creation
 	int agent_counter = 0;
-	for (int i = 0; i < tiers_number; i++) {
+	for (int i = 0; i < tiers_number; i++)
+		// for each tier i 
 		for (int agent = 0; agent < agents_tiers[i]; agent++) {
-			int x = rand() % n, y = rand() % n;
+			// for each agent in tier i
+			// find a position in the field
+			int x = random_int(0, dimension_size - 1), y = random_int(0, dimension_size - 1);
 			while (!is_allowed_in_position(x, y)) {
-				x = rand() % n;
-				y = rand() % n;
+				x = random_int(0, dimension_size); 
+				y = random_int(0, dimension_size);
 			}
-			Agent* ag = new Agent(this, x, y, agent_counter, agents_properties[i][0], agents_properties[i][1], radius);
+			field[x][y] = agent_counter;
+
+			double pers = agents_properties[i][0] < 0 ? (double)random_double(0,1) : agents_properties[i][0];
+			double susc = agents_properties[i][1] < 0 ? (double)random_double(0,1) : agents_properties[i][1];
+
+			// create agent
+			Agent* ag = new Agent(this, x, y, agent_counter++, pers, susc, agents_ideas[i], radius);
 			agents.push_back(ag);
-			for (int j = 0; j < num_canti; j++)
-				ag->set_idea(j, agents_ideas[i][j]);
-			mat[x][y] = agent_counter++;
 		}
-	}
 
-	update_centers();
-
-	mat_prec = new int*[n]();
-	for (int i = 0; i < n; i++) {
-		mat_prec[i] = new int[n]();
-		for (int j = 0; j < n; j++)
-			mat_prec[i][j] = mat[i][j];
-	}
+	agents_shuffle = new int[agents_number]();
+	for (int i = 0; i < agents_number; i++)
+		agents_shuffle[i] = i;
 }
 
 Environment::~Environment() {
 	//matrix
-	for (int i = 0; i < N; i++) {
-		delete mat[i];
-		delete mat_prec[i];
+	for (int i = 0; i < dimension_size; i++) {
+		delete field[i];
+		delete field_precedent_step[i];
 	}
-	delete mat;
-	delete mat_prec;
+	delete field;
+	delete field_precedent_step;
 
-	//centers
-	for (int i = 0; i < num_canti; i++) {
-		delete centers[i];
-		delete canti[i];
+	//ideas_centers
+	for (int i = 0; i < ideas_number; i++) {
+		delete ideas_centers[i];
 	}
-	delete centers;
-	delete canti;
+	delete ideas_centers;
+	delete ideas_agents_number;
 
 	//agents
-	for (int i = 0; i < NA; i++)
+	for (int i = 0; i < agents_number; i++)
 		delete agents[i];
 	agents.clear();
-}
-
-bool Environment::is_allowed_in_position(int x, int y) {
-	if ((x >= 0 && x < N && y >= 0 && y < N) && (mat[x][y] == -1)) return true;
-	return false;
-}
-
-void Environment::set_in_position(int x, int y, int old_x, int old_y) {
-	int tmp = mat[old_x][old_y];
-	mat[old_x][old_y] = -1;
-	mat[x][y] = tmp;
+	delete agents_shuffle;
 }
 
 void Environment::init_interactions() {
-	for (int i = 0; i < N; i++)
-		for (int j = 0; j < N; j++)
-			mat_prec[i][j] = mat[i][j];
+	// setup field at previous step
+	for (int i = 0; i < dimension_size; i++)
+		for (int j = 0; j < dimension_size; j++)
+			field_precedent_step[i][j] = field[i][j];
+
+	//setup agents
+	for (int i = 0; i < agents_number; i++) {
+		// followers
+		agents[i]->set_followers_pre_step(agents[i]->get_actual_followers());
+		agents[i]->set_actual_followers(1);
+		// position
+		agents[i]->set_previous_position(agents[i]->get_position()[0], agents[i]->get_position()[1]);
+		// ideas
+		for (int idea = 0; idea < ideas_number; idea++)
+			agents[i]->set_pre_idea(idea, agents[i]->get_ideas()[idea]); 
+		agents[i]->set_idea_to_play(); // chosen idea to play
+	}
 
 	update_centers();
-	
-	for (int i = 0; i < NA; i++) {
-		agents[i]->set_followers_pre_step(agents[i]->get_actual_followers());
-		agents[i]->set_actual_followers(0);
-		agents[i]->set_idea_to_play();
-	}
-	set_leaders();
 }
 
 void Environment::update_centers() {
-	//Vector of agents for each idea
-	vector<Agent*>* arr = new vector<Agent*>[num_canti]();
-	//Divide agents considering their prominent ideas
-	for (int i = 0; i < NA; i++)
-		arr[agents[i]->get_actual_prominent_idea()].push_back(agents[i]);
+	// Initialize arrays for max function
+	vector<double> max_followers(ideas_number);
+	vector<double> most_followed_agent_position(ideas_number);
+	for (int i = 0; i < ideas_number; i++) {
+		max_followers[i] = -1;
+		most_followed_agent_position[i] = -1;
+		ideas_agents_number[i] = 0;
+	}
 
-	/*Group Leader*/
-	for (int i = 0; i < num_canti; i++) {
-		int max = 0;
-		int most_followed_agent_position = -1;
-		//Search for most followed agent
-		for (int j = 0; j < arr[i].size(); j++)
-			if (arr[i][j]->get_actual_followers() > max)
-				most_followed_agent_position = j;
-		if (most_followed_agent_position > -1) {
-			centers[i][0] = arr[i][most_followed_agent_position]->get_position()[0];
-			centers[i][1] = arr[i][most_followed_agent_position]->get_position()[1];
+	//Search for most followed agent
+	for (int i = 0; i < agents_number; i++) {
+		int idea = agents[i]->get_actual_prominent_idea();
+		ideas_agents_number[idea]++;	// count agents
+		agents[i]->setLeader(false);
+		// Most followed agent?
+		if (agents[i]->get_actual_followers() > max_followers[idea]) {
+			most_followed_agent_position[idea] = i;
+			max_followers[idea] = agents[i]->get_actual_followers();
+		}
+	}
+
+	// Set centers
+	for (int i = 0; i < ideas_number; i++) {
+		if (most_followed_agent_position[i] >= 0) {
+			agents[most_followed_agent_position[i]]->setLeader(true);
+			ideas_centers[i][0] = agents[most_followed_agent_position[i]]->get_position()[0];
+			ideas_centers[i][1] = agents[most_followed_agent_position[i]]->get_position()[1];
 		}
 		else {
-			centers[i][0] = N / 2;
-			centers[i][1] = N / 2;
+			ideas_centers[i][0] = dimension_size / 2;
+			ideas_centers[i][1] = dimension_size / 2;
 		}
 	}
-	//Cleaning
-	for (int i = 0; i < num_canti; i++) {
-		while (!arr[i].empty())
-			arr[i].pop_back();
-		arr[i].clear();
-	}
-	delete[] arr;
-
-	/* Group Center
-	for (int i = 0; i < num_canti; i++) {
-	double x_m = 0, y_m = 0;
-	for (int j = 0; j < arr[i].size(); j++) {
-	x_m += arr[i][j]->get_position()[0];
-	y_m += arr[i][j]->get_position()[1];
-	}
-	if (arr[i].size() > 0) {
-	centers[i][0] = x_m / ((double)arr[i].size());
-	centers[i][1] = y_m / ((double)arr[i].size());
-	}
-	else {
-	centers[i][0] = N/2;
-	centers[i][1] = N/2;
-	}
-	}*/
 }
 
-void Environment::set_leaders() {
-	//
-}
-
-int Environment::get_dim() {
-	return N;
-}
-
-int Environment::get_num_canti() {
-	return num_canti;
-}
-
-int** Environment::get_canti() {
-	return canti;
-}
-
-int** Environment::get_centers() {
-	return centers;
-}
-
-int Environment::get_num_agents() {
-	return NA;
-}
 
 Agent* Environment::get_agent(int i) {
 	return agents[i];
 }
 
-Agent* Environment::get_agent_in_position(int x, int y, int z) {
-	if (z == 0)
-		if (mat[x][y] >= 0) return get_agent(mat[x][y]);
-	if (z == 1)
-		if (mat_prec[x][y] >= 0) return get_agent(mat_prec[x][y]);
+Agent* Environment::get_agent_in_position(int x, int y) {
+	if (field[x][y] >= 0)
+		return get_agent(field[x][y]);
 	return NULL;
 }
 
-void Environment::set_canti() {
-	switch (num_canti) {
-	case 1:
-		canti[0][0] = 0;
-		canti[0][1] = 0;
-		break;
-	case 2:
-		canti[0][0] = 0;
-		canti[0][1] = 0;
-		canti[1][0] = N - 1;
-		canti[1][1] = N - 1;
-		break;
-	case 3:
-		canti[0][0] = 0;
-		canti[0][1] = 0;
-		canti[1][0] = 0;
-		canti[1][1] = N - 1;
-		canti[2][0] = N - 1;
-		canti[2][1] = 0;
-		break;
-	case 4:
-		canti[0][0] = 0;
-		canti[0][1] = 0;
-		canti[1][0] = 0;
-		canti[1][1] = N - 1;
-		canti[2][0] = N - 1;
-		canti[2][1] = 0;
-		canti[3][0] = N - 1;
-		canti[3][1] = N - 1;
-		break;
-	}
+Agent* Environment::get_agent_in_position_at_prevoius_step(int x, int y) {
+	if (field_precedent_step[x][y] >= 0)
+		return get_agent(field_precedent_step[x][y]);
+	return NULL;
 }
 
-void Environment::print_mat() {
-	for (int i = 0; i < N; i++) {
-		for (int j = 0; j < N; j++)
-			if(mat[i][j] == -1)
-				cout << ".\t";
-			else
-				cout << mat[i][j] << "\t";
-		cout << "\n\n";
-	}
+bool Environment::is_allowed_in_position(int x, int y) {
+	if ((x >= 0 && x < dimension_size && y >= 0 && y < dimension_size) && (field[x][y] == -1)) 
+		return true;
+	return false;
 }
 
-void Environment::print_agents_position() {
-	for (int i = 0; i < NA; i++) {
-		cout << agents[i]->get_name() << " position: " << agents[i]->get_position()[0] << "," << agents[i]->get_position()[1] << "\n";
-	}
+void Environment::set_in_position(int x, int y, int old_x, int old_y) {
+	int tmp = field[old_x][old_y];
+	field[old_x][old_y] = -1;
+	field[x][y] = tmp;
 }
 
-void Environment::print_agents_ideas() {
-	for (int i = 0; i < NA; i++) {
-		cout << agents[i]->get_name() << " ideas: ";
-		int j = 0;
-		for (; j < num_canti - 1; j++){
-			cout << agents[i]->get_ideas()[j] << ", ";
-		}
-		cout << agents[i]->get_ideas()[j] << "\n";
-	}
+int Environment::get_dimension_size() {
+	return dimension_size;
+}
+
+int Environment::get_agents_number() {
+	return agents_number;
+}
+
+int Environment::get_ideas_number() {
+	return ideas_number;
+}
+
+int** Environment::get_ideas_centers() {
+	return ideas_centers;
+}
+
+int* Environment::get_ideas_agents_number() {
+	return ideas_agents_number;
+}
+
+int* Environment::get_agents_shuffle() {
+	return agents_shuffle;
+}
+
+double Environment::random_double(int floor, int ceil) {
+	uniform_real_distribution<> distribution(floor, ceil);
+	return distribution(rng);
+}
+
+int Environment::random_int(int floor, int ceil) {
+	uniform_int_distribution<> distribution(floor, ceil);
+	return distribution(rng);
 }
