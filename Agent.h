@@ -45,7 +45,6 @@ public:
 	void set_actual_followers(int fllw);
 	void setLeader(bool nominee);
 
-
 	string get_name();
 	int get_id();
 	int* get_position();

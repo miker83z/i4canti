@@ -158,7 +158,7 @@ int Agent::interact() {
 			//Agent to interact with
 			Agent* other = environment->get_agent_in_position_at_prevoius_step(other_position[0], other_position[1]);
 			if (other != NULL)
-				neighbors[other->get_idea_to_play()].push_back(other->get_id());			
+				neighbors[other->get_idea_to_play()].push_back(other->get_id());
 		}
 
 	// Count neighbors
