@@ -24,6 +24,8 @@ int agents_tiers[6];
 double* agents_properties[6];
 double* agents_ideas[6];
 int END_TIME;
+bool id_basd = FALSE;
+double thr = 0;
 double R;
 Fl_Color canti_col[4];
 

@@ -17,7 +17,7 @@ In_box inboxEndTime(Point(50, 240), 50, 30, "EndTime", FL_WHITE);
 Text textN(Point(50, 300), FL_HELVETICA, 15, FL_WHITE, "N /");
 In_box inboxRadius(Point(70, 280), 50, 30, "Radius", FL_WHITE);
 Text textT(Point(180, 260), FL_HELVETICA, 15, FL_WHITE, "0");
-CheckButton buttonSaveSim(Point(50, 340), 160, 30, "Save Simulation Data", set_flag, 0);
+CheckButton buttonSaveSim(Point(50, 435), 160, 30, "Save Simulation Data", set_flag, 0);
 Button buttonGO(Point(50, h / 2 - 50), 100, 30, "Go", callback1);
 Button buttonPAUSE(Point(250, 80), 70, 30, "Pause", pause);
 Button buttonCONTINUE(Point(250, 240), 70, 30, "Continue", continueF);
@@ -25,6 +25,9 @@ Button buttonSTOP(Point(200, h / 2 - 50), 100, 30, "Stop", stop);
 
 RadioButton *radio = new RadioButton[3]();
 Text textIdeas(Point(145, 220), FL_HELVETICA, 15, FL_WHITE, "Ideas");
+RadioButton *radio_thresh = new RadioButton[2]();
+Text textThresh(Point(50, 340), FL_HELVETICA, 15, FL_WHITE, "Dissimilar Threshold");
+Slider sliderThresh(Point(155, 370), 125, 20, "", FL_HOR_SLIDER, FL_ALIGN_RIGHT, FL_WHITE, 0, NULL);
 
 //Window3 Agents
 Windows window3(Point(w1 + 8 + w2, 0), w3, h3, "Agents", fl_rgb_color(45, 45, 45));
@@ -122,6 +125,9 @@ bool init() {
 		agents_ideas[3][i] = random_flag[9] ? -1 : sliderTier4I[i].get_value();
 	}
 
+	// threshold
+	thr = sliderThresh.get_value();
+
 	canti_col[0] = fl_rgb_color(255, 10, 10);
 	canti_col[1] = fl_rgb_color(10, 10, 255);
 	canti_col[2] = fl_rgb_color(10, 255, 10);
@@ -147,7 +153,7 @@ void callback1(Fl_Widget*, void*) {
 		double xmin = R, xmax = w1 + R, ymin = R, ymax = h1 + R;
 
 		// create environment
-		Environment env(N, NA, NC, radius, 4, agents_tiers, agents_properties, agents_ideas);
+		Environment env(N, NA, NC, radius, 4, agents_tiers, agents_properties, agents_ideas, id_basd, thr);
 		int *numbers_shuffle = env.get_agents_shuffle();
 
 		// CSV writing
@@ -335,6 +341,21 @@ void radio_change(Fl_Widget*w, void *par) {
 	show_sliders_after_change(tmp);
 }
 
+void radio_thresh_change(Fl_Widget*w, void *par) {
+	RadioButton *buttons = (RadioButton*)par;
+	int mainOne = 0;
+	for (int i = 0; i < 2; i++)
+		if (buttons[i].equals(((Fl_Round_Button*)w)))
+			mainOne = i;
+	for (int i = 0; i < 2; i++)
+		if (i == mainOne)
+			buttons[i].on();
+		else
+			buttons[i].off();
+
+	id_basd = mainOne ? FALSE : TRUE;
+}
+
 void set_flag(Fl_Widget*w, void* i) {
 	int tmp = *(int*)i;
 	if (tmp == 0)
@@ -360,14 +381,22 @@ void gui_start() {
 	inboxRadius.set_value("10");
 	window2.attach(buttonSaveSim);
 	window2.attach(buttonGO);
-	radio[0] = RadioButton(Point(50, 198), 20, 20, "2", radio_change, radio);
-	radio[1] = RadioButton(Point(80, 198), 20, 20, "3", radio_change, radio);
-	radio[2] = RadioButton(Point(110, 198), 20, 20, "4", radio_change, radio);
+	radio[0] = RadioButton(Point(50, 198), 20, 20, "2", TRUE, radio_change, radio);
+	radio[1] = RadioButton(Point(80, 198), 20, 20, "3", TRUE, radio_change, radio);
+	radio[2] = RadioButton(Point(110, 198), 20, 20, "4", TRUE, radio_change, radio);
 	window2.attach(radio[0]);
 	window2.attach(radio[1]);
 	window2.attach(radio[2]);
 	radio[0].on();
 	window2.attach(textIdeas);
+	radio_thresh[0] = RadioButton(Point(50, 345), 20, 20, "Based on ideas values", FALSE, radio_thresh_change, radio_thresh);
+	radio_thresh[1] = RadioButton(Point(50, 370), 20, 20, "Based on T=", FALSE, radio_thresh_change, radio_thresh);
+	window2.attach(radio_thresh[0]);
+	window2.attach(radio_thresh[1]);
+	radio_thresh[1].on();
+	window2.attach(textThresh);
+	window2.attach(sliderThresh);
+	sliderThresh.set_value(.3);
 
 	window3.attach(textTier1);
 	window3.attach(inboxTier1);

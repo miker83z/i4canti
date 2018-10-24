@@ -20,30 +20,40 @@ class Agent{
 
 	int actual_chosen_idea;	// Idea chosen at each time step
 	int view;				// Parameter that indicates the size of the window used to select agent to interact with
+
+	/* Ver 1.0
 	int followers_pre_step;	// Followers at previous time step
 	int actual_followers;	// Followers at this time step
 	int supportive_neighbors_previous_step;	// Number of supportive neighbors at previous step
 	bool leader;			// Is leader or not?
+	*/
+
+	double threshold;
+	bool IDEA_BASED;
+	double has_moved;
 
 	Environment* environment;
 
 public:
-	Agent(Environment* e, int x, int y, int agt_counter, double pers, double susc, double* tier_ideas, int global_radius);
+	Agent(Environment* e, int x, int y, int agt_counter, double pers, double susc, double* tier_ideas, int global_radius, bool id_basd, double thr);
 	~Agent();
 	void tick();
 
 	int get_actual_prominent_idea();
 	int get_idea_to_play();
 	void set_idea_to_play();
-	void follow();
 
 	void set_previous_position(int x, int y);
 	void set_idea(int i, double val);
 	void set_pre_idea(int i, double val);
 	void set_actual_prominent_idea();
+	void setup_has_moved();
+	/* Ver 1.0
+	void follow();
 	void set_followers_pre_step(int fllw);
 	void set_actual_followers(int fllw);
 	void setLeader(bool nominee);
+	*/
 
 	string get_name();
 	int get_id();
@@ -52,13 +62,18 @@ public:
 	double* get_ideas();
 	double get_persuasion();
 	double get_susceptibility();
+	double hasMoved();
+
+	/* Ver 1.0
 	int get_followers_pre_step();
 	int get_actual_followers();
 	bool isLeader();
+	*/
 
 private:
-	int interact();
-	void move(int* x);
+	double interact();
+	/* Ver 1.0	void move(int* x); */
+	void move_randomly();
 	int uniform_decision_pick(double* arr, int size);
 	int get_max_idea(double * arr);
 };

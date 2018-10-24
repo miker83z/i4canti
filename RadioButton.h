@@ -1,18 +1,20 @@
 struct RadioButton : Widget {
 	Fl_Round_Button* pw;
 	int i;
+	bool align_bottom;
 	RadioButton *par;
 	RadioButton() : Widget(Point(0, 0), 0, 0, "", 0) {};
-	RadioButton(Point p, int w, int h, string s, Callback cb, RadioButton *pa)
+	RadioButton(Point p, int w, int h, string s, bool align_bott, Callback cb, RadioButton *pa)
 		: Widget(p, w, h, s, cb) {
 		par = pa;
+		align_bottom = align_bott;
 	}
 	void set_label(string s) { label = s; }
 	void attach(Windows &window) {
 		pw = new Fl_Round_Button(xy.x, xy.y, width, height, label.c_str());
 		pw->callback(do_it, (void *)par);
 		pw->color(FL_DARK_BLUE);
-		pw->align(FL_ALIGN_BOTTOM);
+		if(align_bottom) pw->align(FL_ALIGN_BOTTOM);
 		pw->labelfont(FL_HELVETICA);
 		pw->labelcolor(FL_WHITE);
 		pw->labelsize(14);

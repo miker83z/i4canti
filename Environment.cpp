@@ -6,8 +6,11 @@
 #include "Agent.h"
 
 mt19937 rng;
+int radius_global;
+bool ideas_based; 
+double threshold;
 
-Environment::Environment(int n, int na, int nc, int radius, int tiers_number, int* agents_tiers, double** agents_properties, double** agents_ideas) {
+Environment::Environment(int n, int na, int nc, int radius, int tiers_number, int* agents_tiers, double** agents_properties, double** agents_ideas, bool id_basd, double thr) {
 	rng = mt19937(chrono::high_resolution_clock::now().time_since_epoch().count());
 	
 	this->dimension_size = n;
@@ -24,19 +27,20 @@ Environment::Environment(int n, int na, int nc, int radius, int tiers_number, in
 			field_precedent_step[i][j] = field[i][j] = -1;
 	}
 
+	/* Ver 1.0
 	//ideas_centers
 	ideas_centers = new int*[ideas_number];
 	for (int i = 0; i < ideas_number; i++)
 		ideas_centers[i] = new int[2];
 	ideas_agents_number = new int[ideas_number]();
+	*/
 
 	//agents creation
 	int agent_counter = 0;
 	for (int i = 0; i < tiers_number; i++)
 		// for each tier i 
 		for (int agent = 0; agent < agents_tiers[i]; agent++) {
-			// for each agent in tier i
-			// find a position in the field
+			// for each agent in tier i find a position in the field
 			int x = random_int(0, dimension_size - 1), y = random_int(0, dimension_size - 1);
 			while (!is_allowed_in_position(x, y)) {
 				x = random_int(0, dimension_size); 
@@ -48,9 +52,13 @@ Environment::Environment(int n, int na, int nc, int radius, int tiers_number, in
 			double susc = agents_properties[i][1] < 0 ? (double)random_double(0,1) : agents_properties[i][1];
 
 			// create agent
-			Agent* ag = new Agent(this, x, y, agent_counter++, pers, susc, agents_ideas[i], radius);
+			Agent* ag = new Agent(this, x, y, agent_counter++, pers, susc, agents_ideas[i], radius, id_basd, thr);
 			agents.push_back(ag);
 		}
+
+	radius_global = radius;
+	ideas_based = id_basd;
+	threshold = thr;
 
 	agents_shuffle = new int[agents_number]();
 	for (int i = 0; i < agents_number; i++)
@@ -66,12 +74,14 @@ Environment::~Environment() {
 	delete field;
 	delete field_precedent_step;
 
+	/* Ver 1.0
 	//ideas_centers
 	for (int i = 0; i < ideas_number; i++) {
 		delete ideas_centers[i];
 	}
 	delete ideas_centers;
 	delete ideas_agents_number;
+	*/
 
 	//agents
 	for (int i = 0; i < agents_number; i++)
@@ -88,20 +98,26 @@ void Environment::init_interactions() {
 
 	//setup agents
 	for (int i = 0; i < agents_number; i++) {
+		/* Ver 1.0
 		// followers
 		agents[i]->set_followers_pre_step(agents[i]->get_actual_followers());
 		agents[i]->set_actual_followers(1);
+		*/
 		// position
 		agents[i]->set_previous_position(agents[i]->get_position()[0], agents[i]->get_position()[1]);
 		// ideas
 		for (int idea = 0; idea < ideas_number; idea++)
 			agents[i]->set_pre_idea(idea, agents[i]->get_ideas()[idea]); 
 		agents[i]->set_idea_to_play(); // chosen idea to play
+		agents[i]->setup_has_moved();
 	}
 
+	/* Ver 1.0
 	update_centers();
+	*/
 }
 
+/*
 void Environment::update_centers() {
 	// Initialize arrays for max function
 	vector<double> max_followers(ideas_number);
@@ -137,7 +153,7 @@ void Environment::update_centers() {
 		}
 	}
 }
-
+*/
 
 Agent* Environment::get_agent(int i) {
 	return agents[i];
@@ -179,6 +195,23 @@ int Environment::get_ideas_number() {
 	return ideas_number;
 }
 
+double Environment::get_radius() {
+	return radius_global;
+}
+
+bool Environment::is_ideas_based() {
+	return ideas_based;
+}
+
+double Environment::get_threshold() {
+	return threshold;
+}
+
+int* Environment::get_agents_shuffle() {
+	return agents_shuffle;
+}
+
+/* Ver 1.0
 int** Environment::get_ideas_centers() {
 	return ideas_centers;
 }
@@ -186,10 +219,7 @@ int** Environment::get_ideas_centers() {
 int* Environment::get_ideas_agents_number() {
 	return ideas_agents_number;
 }
-
-int* Environment::get_agents_shuffle() {
-	return agents_shuffle;
-}
+*/
 
 double Environment::random_double(int floor, int ceil) {
 	uniform_real_distribution<> distribution(floor, ceil);
