@@ -35,7 +35,7 @@ bool STOP = FALSE;
 bool RUNNING = FALSE;
 bool FIRST_TIME = TRUE;
 
-bool SIM_DATA_FLAG = FALSE;
+bool SIM_DATA_FLAG = TRUE;
 bool random_flag[18] = { FALSE };
 
 bool init();
@@ -43,6 +43,7 @@ void closing();
 void callback1(Fl_Widget*, void*);
 void pause(Fl_Widget*, void*);
 void continueF(Fl_Widget*, void*);
+void plotF(Fl_Widget*, void*);
 void stop(Fl_Widget*, void*);
 void open_dialog(string s);
 void close_dialog(Fl_Widget*, void*);

@@ -8,6 +8,7 @@ struct CheckButton : Widget {
 	void set_label(string s) { label = s; }
 	void attach(Windows &window) {
 		pw = new Fl_Check_Button(xy.x, xy.y, width, height, label.c_str());
+		if (i == 0) pw->value(1); //Save Sim Data
 		pw->callback(do_it, &i);
 		pw->color(FL_DARK_BLUE);
 		pw->labelfont(FL_HELVETICA);

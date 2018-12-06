@@ -4,7 +4,7 @@
 csvfile* agts;
 csvfile* prop; 
 
-Plot::Plot(Environment* e, string directory) {
+Plot::Plot(Environment* e, string directory, int tiers_number, int* agents_tiers, double** agents_properties, double** agents_ideas) {
 	agts = new csvfile(directory +"\\Agents.csv");
 	prop = new csvfile(directory + "\\SimProperties.csv");
 
@@ -37,6 +37,14 @@ Plot::Plot(Environment* e, string directory) {
 	if (!env->is_ideas_based())
 		tmp_s = to_string(env->get_threshold());
 	*prop << "Dissimilar Threshold" << tmp_s << endrow;
+	for (int i = 0; i < tiers_number; i++) { 
+		string tmp_ideas = "";
+		for (int j = 0; j < env->get_ideas_number(); j++)
+			tmp_ideas += (agents_ideas[i][j] < 0 ? "random" : to_string(agents_ideas[i][j])) + ",";
+		tmp_ideas = tmp_ideas.substr(0, tmp_ideas.size() - 1);
+		*prop << "Tier " + to_string(i + 1) << "NA=" + to_string(agents_tiers[i]) << "p=" + (agents_properties[i][0] < 0 ? "random" : to_string(agents_properties[i][0])) << "s=" +
+			(agents_properties[i][1] < 0 ? "random" : to_string(agents_properties[i][1])) << tmp_ideas << endrow;
+	}
 }
 
 Plot::~Plot() {

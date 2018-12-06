@@ -4,13 +4,15 @@
 #include <sstream>
 
 int w = Fl::w(), h = Fl::h();
-int w1 = w * 3 / 8, h1 = w * 3 / 8;	//Window1
-int w2 = w / 6, h2 = h / 1.87;		//Window2
-int w3 = w / 3, h3 = h / 1.87;		//Window3
+double scal = (1920.0 / (double)w );
+double scal2 = (1080.0 / (double)h);
+int w1 = (scal - abs(log(scal)) )* (w * 3 / 8), h1 = (scal - abs(log(scal))) * (w * 3 / 8);	//Window1
+int w2 = scal * (w / 6), h2 = scal2 * (h / 1.87);			//Window2
+int w3 = scal * (w / 3), h3 = scal2 * (h / 1.87);		//Window3
 Plot *plot;
 
 //Window2 Controller
-Windows window2(Point(w1 + 8, 0), w2, h2, "Controller", fl_rgb_color(45, 45, 45));
+Windows window2(Point(w1 + 8, 200), w2, h2, "Controller", fl_rgb_color(45, 45, 45));
 Slider sliderTimeSpeed(Point(50, 120), 120, 30, "Time speed", FL_HOR_SLIDER, FL_ALIGN_RIGHT, FL_WHITE, 0, NULL);
 In_box inboxN(Point(50, 160), 50, 30, "Env dim NxN (MAX 300)", FL_WHITE);
 In_box inboxEndTime(Point(50, 240), 50, 30, "EndTime", FL_WHITE);
@@ -18,10 +20,11 @@ Text textN(Point(50, 300), FL_HELVETICA, 15, FL_WHITE, "N /");
 In_box inboxRadius(Point(70, 280), 50, 30, "Radius", FL_WHITE);
 Text textT(Point(180, 260), FL_HELVETICA, 15, FL_WHITE, "0");
 CheckButton buttonSaveSim(Point(50, 435), 160, 30, "Save Simulation Data", set_flag, 0);
-Button buttonGO(Point(50, h / 2 - 50), 100, 30, "Go", callback1);
+Button buttonGO(Point(50, 465), 100, 30, "Go", callback1);
 Button buttonPAUSE(Point(250, 80), 70, 30, "Pause", pause);
 Button buttonCONTINUE(Point(250, 240), 70, 30, "Continue", continueF);
-Button buttonSTOP(Point(200, h / 2 - 50), 100, 30, "Stop", stop);
+Button buttonPLOT(Point(250, 290), 70, 30, "Show Plot", plotF);
+Button buttonSTOP(Point(200, 465), 100, 30, "Stop", stop);
 
 RadioButton *radio = new RadioButton[3]();
 Text textIdeas(Point(145, 220), FL_HELVETICA, 15, FL_WHITE, "Ideas");
@@ -30,7 +33,7 @@ Text textThresh(Point(50, 340), FL_HELVETICA, 15, FL_WHITE, "Dissimilar Threshol
 Slider sliderThresh(Point(155, 370), 125, 20, "", FL_HOR_SLIDER, FL_ALIGN_RIGHT, FL_WHITE, 0, NULL);
 
 //Window3 Agents
-Windows window3(Point(w1 + 8 + w2, 0), w3, h3, "Agents", fl_rgb_color(45, 45, 45));
+Windows window3(Point(w1 + 8 + w2, 200), w3, h3, "Agents", fl_rgb_color(45, 45, 45));
 
 Text textTier1(Point(20, 45), FL_HELVETICA_BOLD, 20, fl_rgb_color(224, 180, 203), "AGENTS TIER 1");
 In_box inboxTier1(Point(180, 24), 50, 30, "", fl_rgb_color(255, 40, 40));
@@ -69,13 +72,15 @@ Slider sliderTier4S(Point(350, 510), 100, 30, "Susceptibility", FL_HOR_SLIDER, F
 CheckButton buttonTier4S(Point(550, 510), 60, 30, "Rand", set_flag, 12);
 
 //Window1 Environment 
-Windows* window = new Windows(Point(0, 0), w1, h1, "Environment", FL_BLACK);
+Windows* window = new Windows(Point(0, 200), w1, h1, "Environment", FL_BLACK);
 vector<Circle*> circles;
 
 //Dialog Window
 Windows* dialog;
 Text textDialog(Point(50, 50), FL_HELVETICA, 15, FL_WHITE, "Errore");
 Button buttonDialog(Point(w1 / 4 - 100, h1 / 4 - 50), 100, 30, "Ok", close_dialog);
+
+string OutputFolder = "";
 
 bool init() {
 	try {
@@ -90,13 +95,13 @@ bool init() {
 		if (NA > 20000 || NA > N * N - 1) { open_dialog("Error: Too many agents"); return false; }
 
 		//radius for agents view
-		radius = N; /* stoi(inboxRadius.get_value());
-					if (radius <= 0 || radius > N) { open_dialog("Error: Radius not allowed"); return false; }
-					radius = N / radius; */
+		radius = stoi(inboxRadius.get_value());
+		if (radius < 1 || radius > N) { open_dialog("Error: Radius not allowed"); return false; }
+		radius = N / radius;
 
 		if (N < 1 || NA < 1 || NC < 1) { open_dialog("Error"); return false; }
 
-		R = 300 / N;
+		R = (300 / N) * (scal - abs(1.8 * log(scal)));
 		END_TIME = 0;
 	}
 	catch (const std::exception&) { open_dialog("Error"); return false; }
@@ -164,11 +169,11 @@ void callback1(Fl_Widget*, void*) {
 				ostringstream oss;
 				oss << std::put_time(&tm, "_%Y%m%d_%H-%M-%S");
 
-				string OutputFolder = "SimulationData\\Sim" + oss.str();
+				OutputFolder = "SimulationData\\Sim" + oss.str();
 				if (!CreateDirectory(OutputFolder.c_str(), NULL) && !ERROR_ALREADY_EXISTS == GetLastError()) {
 					throw exception();
 				}
-				plot = new Plot(&env, OutputFolder);
+				plot = new Plot(&env, OutputFolder, 4, agents_tiers, agents_properties, agents_ideas);
 			}
 			catch (const std::exception &ex) { std::cout << "Exception was thrown: " << ex.what() << std::endl; }
 		}
@@ -254,7 +259,7 @@ void closing() {
 	STOP = FALSE;
 
 	delete window;
-	window = new Windows(Point(0, 0), w1, h1, "Environment", FL_BLACK);
+	window = new Windows(Point(0, 200), w1, h1, "Environment", FL_BLACK);
 	Fl::check();
 	Fl::redraw();
 }
@@ -285,6 +290,13 @@ void pause(Fl_Widget*, void*) {
 
 void continueF(Fl_Widget*, void*) {
 	CONTINUE = TRUE;
+}
+
+void plotF(Fl_Widget*, void*) {
+	if (SIM_DATA_FLAG && !OutputFolder.empty()) {
+		string python = "python plot.py .\\" + OutputFolder + "\\";
+		system(python.c_str());
+	}
 }
 
 void stop(Fl_Widget*, void*) {
@@ -378,9 +390,10 @@ void gui_start() {
 	window2.attach(textT);
 	window2.attach(textN);
 	window2.attach(inboxRadius);
-	inboxRadius.set_value("10");
+	inboxRadius.set_value("3");
 	window2.attach(buttonSaveSim);
 	window2.attach(buttonGO);
+	window2.attach(buttonPLOT);
 	radio[0] = RadioButton(Point(50, 198), 20, 20, "2", TRUE, radio_change, radio);
 	radio[1] = RadioButton(Point(80, 198), 20, 20, "3", TRUE, radio_change, radio);
 	radio[2] = RadioButton(Point(110, 198), 20, 20, "4", TRUE, radio_change, radio);

@@ -16,17 +16,15 @@ class Environment {
 	int** field_precedent_step;	// Matrix used at time t to store field status at time t-1
 	vector<Agent*> agents;	// Vector of Agents
 	int* agents_shuffle;
-	
-	/* Ver 1.0
-	int** ideas_centers;	// Positions in the field of ideas centers, representing the main point to reach for each idea (could be an agent position)
-	int *ideas_agents_number;	// Vector containing the number of agents having an idea at a time step
-	*/
+	int radius_global;
+	bool ideas_based;
+	double threshold;
 
 public:
 	Environment(int N, int NA, int n_canti, int radius, int tiers_number, int* agents_tiers, double** agents_properties, double** agents_ideas, bool id_basd, double thr);
 	~Environment();
+
 	void init_interactions();
-	/* Ver 1.0 void update_centers(); */
 
 	Agent* get_agent(int i);
 	Agent* get_agent_in_position(int x, int y);
@@ -41,10 +39,6 @@ public:
 	bool is_ideas_based();
 	double get_threshold();
 	int* get_agents_shuffle();
-	/* Ver 1.0
-	int** get_ideas_centers();
-	int* get_ideas_agents_number();
-	*/
 
 	double random_double(int floor, int ceil);
 	int random_int(int floor, int ceil);
