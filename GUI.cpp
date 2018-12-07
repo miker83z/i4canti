@@ -13,18 +13,11 @@ Plot *plot;
 
 //Window2 Controller
 Windows window2(Point(w1 + 8, 200), w2, h2, "Controller", fl_rgb_color(45, 45, 45));
-Slider sliderTimeSpeed(Point(50, 120), 120, 30, "Time speed", FL_HOR_SLIDER, FL_ALIGN_RIGHT, FL_WHITE, 0, NULL);
 In_box inboxN(Point(50, 160), 50, 30, "Env dim NxN (MAX 300)", FL_WHITE);
 In_box inboxEndTime(Point(50, 240), 50, 30, "EndTime", FL_WHITE);
 Text textN(Point(50, 300), FL_HELVETICA, 15, FL_WHITE, "N /");
 In_box inboxRadius(Point(70, 280), 50, 30, "Radius", FL_WHITE);
-Text textT(Point(180, 260), FL_HELVETICA, 15, FL_WHITE, "0");
-CheckButton buttonSaveSim(Point(50, 435), 160, 30, "Save Simulation Data", set_flag, 0);
 Button buttonGO(Point(50, 465), 100, 30, "Go", callback1);
-Button buttonPAUSE(Point(250, 80), 70, 30, "Pause", pause);
-Button buttonCONTINUE(Point(250, 240), 70, 30, "Continue", continueF);
-Button buttonPLOT(Point(250, 290), 70, 30, "Show Plot", plotF);
-Button buttonSTOP(Point(200, 465), 100, 30, "Stop", stop);
 
 RadioButton *radio = new RadioButton[3]();
 Text textIdeas(Point(145, 220), FL_HELVETICA, 15, FL_WHITE, "Ideas");
@@ -72,8 +65,11 @@ Slider sliderTier4S(Point(350, 510), 100, 30, "Susceptibility", FL_HOR_SLIDER, F
 CheckButton buttonTier4S(Point(550, 510), 60, 30, "Rand", set_flag, 12);
 
 //Window1 Environment 
-Windows* window = new Windows(Point(0, 200), w1, h1, "Environment", FL_BLACK);
-vector<Circle*> circles;
+Windows window(Point(w1 / 2, 200), w1/2, h1/3, "Simulations number", fl_rgb_color(45, 45, 45));
+In_box simNum(Point(85, 120), 50, 30, "Sim Number", FL_WHITE);
+Text textSM(Point(270, 140), FL_HELVETICA, 15, FL_WHITE, "0");
+Text textExit(Point(75, 90), FL_HELVETICA, 15, FL_WHITE, "Click X on the console to exit/stop");
+Text textFin(Point(130, 180), FL_HELVETICA, 26, FL_WHITE, "Finished");
 
 //Dialog Window
 Windows* dialog;
@@ -102,7 +98,11 @@ bool init() {
 		if (N < 1 || NA < 1 || NC < 1) { open_dialog("Error"); return false; }
 
 		R = (300 / N) * (scal - abs(1.8 * log(scal)));
-		END_TIME = 0;
+
+		END_TIME = stoi(inboxEndTime.get_value());
+		if (END_TIME < 1 || NA > 100000) { open_dialog("Error End Time"); return false; }
+
+		END_SIMS = stoi(simNum.get_value());
 	}
 	catch (const std::exception&) { open_dialog("Error"); return false; }
 
@@ -138,15 +138,6 @@ bool init() {
 	canti_col[2] = fl_rgb_color(10, 255, 10);
 	canti_col[3] = fl_rgb_color(255, 255, 255);
 
-	if (FIRST_TIME) {
-		window2.attach(buttonPAUSE);
-		window2.attach(buttonCONTINUE);
-		window2.attach(buttonSTOP);
-		FIRST_TIME = FALSE;
-	}
-	buttonPAUSE.show();
-	buttonCONTINUE.show();
-	buttonSTOP.show();
 	buttonGO.hide();
 
 	return true;
@@ -155,62 +146,36 @@ bool init() {
 // main function
 void callback1(Fl_Widget*, void*) {
 	if (init()) {
-		double xmin = R, xmax = w1 + R, ymin = R, ymax = h1 + R;
-
-		// create environment
-		Environment env(N, NA, NC, radius, 4, agents_tiers, agents_properties, agents_ideas, id_basd, thr);
-		int *numbers_shuffle = env.get_agents_shuffle();
 
 		// CSV writing
-		if (SIM_DATA_FLAG) {
-			try {
-				auto t = time(nullptr);
-				auto tm = *localtime(&t);
-				ostringstream oss;
-				oss << std::put_time(&tm, "_%Y%m%d_%H-%M-%S");
+		try {
+			auto t = time(nullptr);
+			auto tm = *localtime(&t);
+			ostringstream oss;
+			oss << std::put_time(&tm, "_%Y%m%d_%H-%M-%S");
 
-				OutputFolder = "SimulationData\\Sim" + oss.str();
-				if (!CreateDirectory(OutputFolder.c_str(), NULL) && !ERROR_ALREADY_EXISTS == GetLastError()) {
-					throw exception();
-				}
-				plot = new Plot(&env, OutputFolder, 4, agents_tiers, agents_properties, agents_ideas);
+			OutputFolder = "MultipleSimData\\Sim" + oss.str();
+			if (!CreateDirectory(OutputFolder.c_str(), NULL) && !ERROR_ALREADY_EXISTS == GetLastError()) {
+				throw exception();
 			}
-			catch (const std::exception &ex) { std::cout << "Exception was thrown: " << ex.what() << std::endl; }
+			plot = new Plot(OutputFolder, END_SIMS, END_TIME, NC, 4, agents_tiers, agents_properties, agents_ideas);
 		}
-
-		// first draw of agents
-		for (int i = 0; i < NA; i++) {
-			double x0 = (double)env.get_agent(i)->get_position()[0] / N * (xmax - xmin) + xmin;
-			double y0 = (double)env.get_agent(i)->get_position()[1] / N * (ymax - ymin) + ymin;
-			circles.push_back(new Circle(Point(x0, y0), R, 1, FL_WHITE, FL_WHITE));
-			window->attach(*circles[i]);
-		}
-
-		// start main
-		int time = 0;
-		while (TRUE) {
-			Sleep(200);
-			Fl::check();
-			if (CONTINUE) {								//CONTINUE
-				END_TIME += stoi(inboxEndTime.get_value());
-				CONTINUE = FALSE;
+		catch (const std::exception &ex) { std::cout << "Exception was thrown: " << ex.what() << std::endl; }
+		
+		for (int simi = 0; simi < END_SIMS; simi++) {
+			textSM.set_content(to_string(simi));
+			if (simi < 11 || !(simi % 25)) {
+				Fl::check();
+				Fl::redraw();
 			}
-			RUNNING = TRUE;
-			for (; time < END_TIME && !STOP; time++) {
 
-				if (PAUSE) {							//PAUSE											
-					buttonPAUSE.set_label("Play");
-					buttonSTOP.hide();
-					buttonCONTINUE.hide();
-					while (PAUSE) {
-						Sleep(50);
-						Fl::check();
-					}
-					buttonPAUSE.set_label("Pause"); 
-					buttonSTOP.show();
-					buttonCONTINUE.show();
-				}
-				textT.set_content(to_string(time));
+			// create environment
+			Environment env(N, NA, NC, radius, 4, agents_tiers, agents_properties, agents_ideas, id_basd, thr);
+			plot->set_env(&env);
+			int *numbers_shuffle = env.get_agents_shuffle();
+			
+
+			for (int time = 0; time < END_TIME && !STOP; time++) {
 
 				//MAIN PROCEDURE
 				env.init_interactions();
@@ -221,47 +186,18 @@ void callback1(Fl_Widget*, void*) {
 					//TICK
 					env.get_agent(agent_id)->tick();
 					/////
-
-					//graphical updates
-					circles[agent_id]->recolor(get_color_from_ideas(env.get_agent(agent_id)->get_ideas()));
-					double x0 = (double)env.get_agent(agent_id)->get_position()[0] / N * (xmax - xmin) + xmin;
-					double y0 = (double)env.get_agent(agent_id)->get_position()[1] / N * (ymax - ymin) + ymin;
-					circles[agent_id]->relocate(x0, y0);
 				}
-				if (SIM_DATA_FLAG)	plot->update_tick(time);
-				Fl::check();
-				Fl::redraw();
-				Sleep(sliderTimeSpeed.get_value());
+				plot->update_tick(time);
 			}
-			RUNNING = FALSE;
-			if (STOP) break;
+
 		}
-		//plot.close();
-		closing();
+		plot->close_plot();
+		window.attach(textFin);
+		Fl::check();
+		Fl::redraw();
+		string python = "python plot.py .\\" + OutputFolder + "\\";
+		system(python.c_str());
 	}
-}
-
-void closing() {
-	buttonPAUSE.hide();
-	buttonCONTINUE.hide();
-	buttonSTOP.hide();
-	buttonGO.show();
-
-	for (int i = 0; i < NA; i++)
-		delete circles[i];
-	circles.clear();
-
-	if (plot != NULL)
-		delete plot;
-
-	PAUSE = FALSE;
-	CONTINUE = TRUE;
-	STOP = FALSE;
-
-	delete window;
-	window = new Windows(Point(0, 200), w1, h1, "Environment", FL_BLACK);
-	Fl::check();
-	Fl::redraw();
 }
 
 Fl_Color get_color_from_ideas(double *ideas) {
@@ -380,20 +316,19 @@ void set_flag(Fl_Widget*w, void* i) {
 }
 
 void gui_start() {
-	window2.attach(sliderTimeSpeed);
-	sliderTimeSpeed.set_value(500);
-	sliderTimeSpeed.set_bounds(25, 1000);
+	window.attach(simNum);
+	simNum.set_value("100");
+	window.attach(textSM);
+	window.attach(textExit);
+
 	window2.attach(inboxN);
 	inboxN.set_value("25");
 	window2.attach(inboxEndTime);
 	inboxEndTime.set_value("1000");
-	window2.attach(textT);
 	window2.attach(textN);
 	window2.attach(inboxRadius);
 	inboxRadius.set_value("3");
-	window2.attach(buttonSaveSim);
 	window2.attach(buttonGO);
-	window2.attach(buttonPLOT);
 	radio[0] = RadioButton(Point(50, 198), 20, 20, "2", TRUE, radio_change, radio);
 	radio[1] = RadioButton(Point(80, 198), 20, 20, "3", TRUE, radio_change, radio);
 	radio[2] = RadioButton(Point(110, 198), 20, 20, "4", TRUE, radio_change, radio);

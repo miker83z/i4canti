@@ -24,6 +24,7 @@ int agents_tiers[6];
 double* agents_properties[6];
 double* agents_ideas[6];
 int END_TIME;
+int END_SIMS;
 bool id_basd = FALSE;
 double thr = 0;
 double R;
@@ -39,7 +40,6 @@ bool SIM_DATA_FLAG = TRUE;
 bool random_flag[18] = { FALSE };
 
 bool init();
-void closing();
 void callback1(Fl_Widget*, void*);
 void pause(Fl_Widget*, void*);
 void continueF(Fl_Widget*, void*);
